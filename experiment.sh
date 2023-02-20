@@ -1,7 +1,7 @@
 #/bin/bash
 
 # CIL CONFIG
-MODE="rm" # joint, gdumb, icarl, rm, ewc, rwalk, bic
+MODE="rm" # joint, gdumb, icarl, rm, ewc, rwalk, bic   # here I can add the Bayesian method? althoug the Bayesian method is more of a architecture than a method! the loss maybe is! 
 # "default": If you want to use the default memory management method.
 MEM_MANAGE="default" # default, random, reservoir, uncertainty, prototype.
 RND_SEED=1

@@ -62,12 +62,12 @@ def main():
     # add more seeding? maybe it will be necessary for the bayesian model
     # torch.cuda.manual_seed_all(seed)
     # torch.cuda.manual_seed(seed)
-
     np.random.seed(args.rnd_seed)
     random.seed(args.rnd_seed)
 
 
     # Transform Definition
+    # here I need to add information about CUB_200 as well
     mean, std, n_classes, inp_size, _ = get_statistics(dataset=args.dataset)
     train_transform = []
     if "cutout" in args.transforms:
@@ -98,7 +98,12 @@ def main():
     )
 
     logger.info(f"[1] Select a CIL method ({args.mode})")
+    # this loss function here is not probabilistic either because it has the (reduction=mean)! for RM maybe it makes sense but for the Bayesian model it does not
     criterion = nn.CrossEntropyLoss(reduction="mean")
+    ''' consider the case for the Bayesian model
+    if args.cub200_mnvi:
+        criterion = proba_loss(reduction="mean")
+    '''
     method = select_method(
         args, criterion, device, train_transform, test_transform, n_classes
     )
