@@ -16,6 +16,7 @@ from methods.finetune import Finetune
 from utils.data_loader import cutmix_data, ImageDataset
 
 logger = logging.getLogger()
+# log = f"tensorboard/Run_{}" ???
 writer = SummaryWriter("tensorboard")
 
 

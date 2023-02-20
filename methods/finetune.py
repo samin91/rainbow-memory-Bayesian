@@ -24,6 +24,7 @@ from utils.data_loader import cutmix_data
 from utils.train_utils import select_model, select_optimizer
 
 logger = logging.getLogger()
+# log = f"tensorboard/Run_{}" ???
 writer = SummaryWriter("tensorboard")
 
 
@@ -511,6 +512,7 @@ class Finetune:
         Args:
             samples ([list]): [training_list + memory_list]
         """
+        # what happens here?
         self.montecarlo(samples, uncert_metric=self.uncert_metric)
 
         sample_df = pd.DataFrame(samples)
@@ -598,6 +600,9 @@ class Finetune:
         for sample in candidates:
             self.variance_ratio(sample, n_transforms)
 
+
+
+
     def variance_ratio(self, sample, cand_length):
         vote_counter = torch.zeros(sample["uncert_0"].size(0))
         for i in range(cand_length):
@@ -605,6 +610,9 @@ class Finetune:
             vote_counter[top_class] += 1
         assert vote_counter.sum() == cand_length
         sample["uncertainty"] = (1 - vote_counter.max() / cand_length).item()
+
+
+
 
     def equal_class_sampling(self, samples, num_class):
         mem_per_cls = self.memory_size // num_class

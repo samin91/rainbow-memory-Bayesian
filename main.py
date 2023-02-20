@@ -47,14 +47,22 @@ def main():
     logger.addHandler(fileHandler)
 
     # Put every run to a different folder
-    # log = f"tensorboard/Run{}" ???
+    # log = f"tensorboard/Run_{}" ???
     writer = SummaryWriter("tensorboard")
 
+    # add an argument the device args.device="cuda:0" or "cpu"
     if torch.cuda.is_available():
         device = torch.device("cuda")
     else:
         device = torch.device("cpu")
     logger.info(f"Set the device ({device})")
+    ''' We can write it like this as well
+    if 'parallel' in args.device:
+        device = 'parallel'
+    else:
+        device = torch.device(args.device)
+    logger.info(f"Set the device ({device})")
+    '''
 
     # Fix the random seeds
     # https://hoya012.github.io/blog/reproducible_pytorch/
@@ -67,6 +75,9 @@ def main():
     np.random.seed(args.rnd_seed)
     random.seed(args.rnd_seed)
 
+    # Running from checkpoint
+    ''' ToDo: add the checkpoint loading: get inspired by MNVI repo
+    '''
 
     # Transform Definition
     # here I need to add information about CUB_200 as well
@@ -104,8 +115,9 @@ def main():
     criterion = nn.CrossEntropyLoss(reduction="mean")
     ''' consider the case for the Bayesian model
     if args.cub200_mnvi:
-        criterion = proba_loss(reduction="mean")
+        prob_loss_dict = Prob_Classification_Loss
     '''
+    # here model class gets initialized through the parent class of method which is finetune
     method = select_method(
         args, criterion, device, train_transform, test_transform, n_classes
     )
