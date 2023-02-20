@@ -10,6 +10,8 @@ from collections import defaultdict
 
 import numpy as np
 import torch
+#torch.use_deterministic_algorithms(True)
+#torch.autograd.set_detect_anomaly(True)
 from randaugment import RandAugment
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
@@ -60,7 +62,7 @@ def main():
     # add more seeding? maybe it will be necessary for the bayesian model
     # torch.cuda.manual_seed_all(seed)
     # torch.cuda.manual_seed(seed)
-    
+
     np.random.seed(args.rnd_seed)
     random.seed(args.rnd_seed)
 
