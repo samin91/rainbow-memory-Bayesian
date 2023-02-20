@@ -1,0 +1,8 @@
+import losses.classification_losses
+import losses.probabilistic_classification_losses
+import losses.label_trick_probabilistic_classification_loss
+
+
+ClassificationLoss = classification_losses.ClassificationLoss
+ClassificationLossVI =  probabilistic_classification_losses.ClassificationLossVI
+LBClassificationLossVI = label_trick_probabilistic_classification_loss.ClassificationLossVI

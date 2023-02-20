@@ -42,6 +42,8 @@ def main():
     fileHandler.setFormatter(formatter)
     logger.addHandler(fileHandler)
 
+    # Put every run to a different folder
+    # log = f"tensorboard/Run{}" ???
     writer = SummaryWriter("tensorboard")
 
     if torch.cuda.is_available():
@@ -55,8 +57,13 @@ def main():
     torch.manual_seed(args.rnd_seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+    # add more seeding? maybe it will be necessary for the bayesian model
+    # torch.cuda.manual_seed_all(seed)
+    # torch.cuda.manual_seed(seed)
+    
     np.random.seed(args.rnd_seed)
     random.seed(args.rnd_seed)
+
 
     # Transform Definition
     mean, std, n_classes, inp_size, _ = get_statistics(dataset=args.dataset)
