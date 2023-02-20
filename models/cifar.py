@@ -192,6 +192,7 @@ class ResNet(nn.Module):
             assert 1 == 2
         self.pool = nn.AdaptiveAvgPool2d(1)
         self.dim_out = out_planes * block.expansion
+        # we shou
         self.fc = FinalBlock(opt=opt, in_channels=out_planes * block.expansion)
 
         for m in self.modules():

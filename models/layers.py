@@ -53,7 +53,7 @@ class ConvBlock(nn.Module):
     def forward(self, input):
         return self.block.forward(input)
 
-
+# shold we reimplelemnt the final block for the Bayesain model? 
 class FCBlock(nn.Module):
     def __init__(self, opt, in_channels, out_channels, bias=False):
         super(FCBlock, self).__init__()

@@ -22,6 +22,7 @@ def select_optimizer(opt_name, lr, model, sched_name="cos"):
     else:
         raise NotImplementedError("Please select the opt_name [adam, sgd]")
 
+    # what is cosine annealing warm restarts?
     if sched_name == "cos":
         scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
             opt, T_0=1, T_mult=2, eta_min=lr * 0.01

@@ -77,9 +77,10 @@ class RM(Finetune):
         eval_dict = dict()
         self.model = self.model.to(self.device)
         for epoch in range(n_epoch):
+
             # initialize for each task
             if epoch <= 0:  # Warm start of 1 epoch
-                for param_group in self.optimizer.param_groups:
+                for param_group in self.optimizer.param_groups: # which parameters group? what is a warm start?
                     param_group["lr"] = self.lr * 0.1
             elif epoch == 1:  # Then set to maxlr
                 for param_group in self.optimizer.param_groups:

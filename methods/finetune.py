@@ -87,6 +87,7 @@ class Finetune:
         self.mode = kwargs["mode"]
 
         self.uncert_metric = kwargs["uncert_metric"]
+        # self.cub200_mnvi = kwargs["cub200_mnview"]
 
     def set_current_dataset(self, train_datalist, test_datalist):
         random.shuffle(train_datalist)
@@ -109,9 +110,10 @@ class Finetune:
                 self.feature_extractor, self.feature_size, self.num_learning_class
             )
 
+        # Here the head size gets increased - fully connected layer should be reimplemented for the Bayesian model
         in_features = self.model.fc.in_features
         out_features = self.model.fc.out_features
-        # To care the case of decreasing head
+        # To care for the case of decreasing head? I think this should be increasing head
         new_out_features = max(out_features, self.num_learning_class)
         if init_model:
             # init model parameters in every iteration
@@ -119,13 +121,17 @@ class Finetune:
             self.model = select_model(self.model_name, self.dataset, new_out_features)
         else:
             self.model.fc = nn.Linear(in_features, new_out_features)
+
         self.params = {
             n: p for n, p in list(self.model.named_parameters())[:-2] if p.requires_grad
         }  # For regularzation methods
+
+
         self.model = self.model.to(self.device)
 
+        # gives us the possibility to reinitialize the optimizer and scheduler
         if init_opt:
-            # reinitialize the optimizer and scheduler
+            # reinitialize the optimizer and scheduler - why should we reiniitalize them for continual learning? 
             logger.info("Reset the optimizer and scheduler states")
             self.optimizer, self.scheduler = select_optimizer(
                 self.opt_name, self.lr, self.model, self.sched_name
@@ -165,6 +171,7 @@ class Finetune:
                     )
                 elif self.mem_manage == "uncertainty":
                     if cur_iter == 0:
+                        # how does this work for a Bayesian model? the same as normal models
                         self.memory_list = self.equal_class_sampling(
                             candidates, num_class
                         )
