@@ -23,6 +23,8 @@ from utils.data_loader import ImageDataset
 from utils.data_loader import cutmix_data
 from utils.train_utils import select_model, select_optimizer
 
+pdb.set_trace()
+
 logger = logging.getLogger()
 # log = f"tensorboard/Run_{}" ???
 writer = SummaryWriter("tensorboard")
@@ -57,6 +59,8 @@ class Finetune:
         self.seen = 0
         self.topk = kwargs["topk"]
 
+        pd.set_trace()
+        # check if the initializations are of classes or only names
         self.device = device
         self.criterion = criterion
         self.dataset = kwargs["dataset"]
@@ -123,6 +127,11 @@ class Finetune:
         else:
             self.model.fc = nn.Linear(in_features, new_out_features)
 
+        
+        '''ToDO: Check if this all the layers of the Bayesian model and 
+                all the parameters are considered?
+                https://discuss.pytorch.org/t/model-named-parameters-will-lose-some-layer-modules/14588/6
+        '''
         self.params = {
             n: p for n, p in list(self.model.named_parameters())[:-2] if p.requires_grad
         }  # For regularzation methods

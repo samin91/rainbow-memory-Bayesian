@@ -117,7 +117,10 @@ def main():
     if args.cub200_mnvi:
         prob_loss_dict = Prob_Classification_Loss
     '''
-    # here model class gets initialized through the parent class of method which is finetune
+    # Here model class gets initialized through the parent class of method which is finetune
+    # I think here the optimizer instance and scheduler instances are initialized, alongside the 
+    # mode. as this is outside of the loop, per task, we have the same model, optimizer and scheduler
+    # this is different from the way it was implemented for the Bayesian model
     method = select_method(
         args, criterion, device, train_transform, test_transform, n_classes
     )
@@ -125,6 +128,9 @@ def main():
     logger.info(f"[2] Incrementally training {args.n_tasks} tasks")
     task_records = defaultdict(list)
 
+    '''ToDo: load prior conversion functions for the Bayesian model
+    '''
+    # Main Loop - cur_iter is not the best name for the current task
     for cur_iter in range(args.n_tasks):
         if args.mode == "joint" and cur_iter > 0:
             return
@@ -137,8 +143,8 @@ def main():
         task_acc = 0.0
         eval_dict = dict()
 
-
         # get datalist
+        # what about validation set? 
         cur_train_datalist = get_train_datalist(args, cur_iter)
         cur_test_datalist = get_test_datalist(args, args.exp_name, cur_iter)
 
@@ -148,7 +154,7 @@ def main():
             random.shuffle(cur_test_datalist)
             cur_train_datalist = cur_train_datalist[:2560]
             cur_test_datalist = cur_test_datalist[:2560]
-
+        
         logger.info("[2-2] Set environment for the current task")
         method.set_current_dataset(cur_train_datalist, cur_test_datalist)
         # Increment known class for current task iteration.
