@@ -49,7 +49,7 @@ def main():
 
     # Put every run to a different folder
     # log = f"tensorboard/Run_{}" ???
-    writer = SummaryWriter("tensorboard")
+    writer = SummaryWriter(f"tensorboard/run_{1}")
 
     # add an argument the device args.device="cuda:0" or "cpu"
     if torch.cuda.is_available():
@@ -122,6 +122,7 @@ def main():
     # I think here the optimizer instance and scheduler instances are initialized, alongside the 
     # mode. as this is outside of the loop, per task, we have the same model, optimizer and scheduler
     # this is different from the way it was implemented for the Bayesian model
+   
     method = select_method(
         args, criterion, device, train_transform, test_transform, n_classes
     )
@@ -215,7 +216,7 @@ def main():
         logger.info("[2-5] Report task result")
         writer.add_scalar("Metrics/TaskAcc", task_acc, cur_iter)
     # I remember there was an error running this line of code
-    np.save(f"results/{save_path}.npy", task_records["task_acc"])
+    #np.save(f"results/{save_path}.npy", task_records["task_acc"])
 
     # Accuracy (A)
     A_avg = np.mean(task_records["task_acc"])

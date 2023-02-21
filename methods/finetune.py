@@ -26,7 +26,7 @@ import pdb
 
 logger = logging.getLogger()
 # log = f"tensorboard/Run_{}" ???
-writer = SummaryWriter("tensorboard")
+writer = SummaryWriter(f"tensorboard/run_{1}")
 
 
 class ICaRLNet(nn.Module):
@@ -77,6 +77,10 @@ class Finetune:
         self.memory_list = []
         self.memory_size = kwargs["memory_size"]
         self.mem_manage = kwargs["mem_manage"]
+        # Growing Memroy --------------------------------
+        self.coreset_size = kwargs["coreset_size"]
+        self.expanding_memory = kwargs["expanding_memory"]
+        #-------------------------------------------
         if kwargs["mem_manage"] == "default":
             self.mem_manage = "random"
 
@@ -161,39 +165,49 @@ class Finetune:
     def update_memory(self, cur_iter, num_class=None):
         if num_class is None:
             num_class = self.num_learning_class
-
+        
         if not self.already_mem_update:
-            logger.info(f"Update memory over {num_class} classes by {self.mem_manage}")
-            candidates = self.streamed_list + self.memory_list
-            if len(candidates) <= self.memory_size:
-                self.memory_list = candidates
-                self.seen = len(candidates)
-                logger.warning("Candidates < Memory size")
-            else:
+            
+            if self.expanding_memory is True:
+                logger.info(f"Update the growing memory over {num_class} classes by {self.mem_manage}")
+                candidates = self.streamed_list 
                 if self.mem_manage == "random":
-                    self.memory_list = self.rnd_sampling(candidates)
-                elif self.mem_manage == "reservoir":
-                    self.reservoir_sampling(self.streamed_list)
-                elif self.mem_manage == "prototype":
-                    self.memory_list = self.mean_feature_sampling(
-                        exemplars=self.memory_list,
-                        samples=self.streamed_list,
-                        num_class=num_class,
-                    )
-                elif self.mem_manage == "uncertainty":
-                    if cur_iter == 0:
-                        # how does this work for a Bayesian model? the same as normal models
-                        self.memory_list = self.equal_class_sampling(
-                            candidates, num_class
-                        )
-                    else:
-                        self.memory_list = self.uncertainty_sampling(
-                            candidates,
+                        self.memory_list.extend(self.rnd_sampling(candidates, self.coreset_size))
+                '''ToDo:
+                elif: self.mem_manage == "uncertainty":
+                '''
+            else:
+                logger.info(f"Update memory over {num_class} classes by {self.mem_manage}")
+                candidates = self.streamed_list + self.memory_list
+                if len(candidates) <= self.memory_size:
+                    self.memory_list = candidates
+                    self.seen = len(candidates)
+                    logger.warning("Candidates < Memory size")
+                else:
+                    if self.mem_manage == "random":
+                        self.memory_list = self.rnd_sampling(candidates, self.memory_size)
+                    elif self.mem_manage == "reservoir":
+                        self.reservoir_sampling(self.streamed_list)
+                    elif self.mem_manage == "prototype":
+                        self.memory_list = self.mean_feature_sampling(
+                            exemplars=self.memory_list,
+                            samples=self.streamed_list,
                             num_class=num_class,
                         )
-                else:
-                    logger.error("Not implemented memory management")
-                    raise NotImplementedError
+                    elif self.mem_manage == "uncertainty":
+                        if cur_iter == 0:
+                            # how does this work for a Bayesian model? the same as normal models
+                            self.memory_list = self.equal_class_sampling(
+                                candidates, num_class
+                            )
+                        else:
+                            self.memory_list = self.uncertainty_sampling(
+                                candidates,
+                                num_class=num_class,
+                            )
+                    else:
+                        logger.error("Not implemented memory management")
+                        raise NotImplementedError
 
             assert len(self.memory_list) <= self.memory_size
             logger.info("Memory statistic")
@@ -397,9 +411,9 @@ class Finetune:
 
         return ret_num_data, ret_corrects
 
-    def rnd_sampling(self, samples):
+    def rnd_sampling(self, samples, size):
         random.shuffle(samples)
-        return samples[: self.memory_size]
+        return samples[: size]
 
     def reservoir_sampling(self, samples):
         for sample in samples:
