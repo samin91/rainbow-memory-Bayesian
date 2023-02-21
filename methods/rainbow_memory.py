@@ -76,12 +76,16 @@ class RM(Finetune):
         # TRAIN
         best_acc = 0.0
         eval_dict = dict()
+        '''ToDo: should we also put the loss function on the device?
+        '''
         self.model = self.model.to(self.device)
         for epoch in range(n_epoch):
 
             # initialize for each task
+            # optimizer.param_groups is a python list, which contains a dictionary.
             if epoch <= 0:  # Warm start of 1 epoch
-                for param_group in self.optimizer.param_groups: # which parameters group? what is a warm start?
+                for param_group in self.optimizer.param_groups:
+                    # param_group is the dict inside the list and is the only item in this list. 
                     param_group["lr"] = self.lr * 0.1
             elif epoch == 1:  # Then set to maxlr
                 for param_group in self.optimizer.param_groups:
@@ -129,6 +133,10 @@ class RM(Finetune):
         _, preds = logit.topk(self.topk, 1, True, True)
 
         loss.backward()
+        ''' ToDo: is it necessary to clip the gradient? it was done in mnvi code
+        Maybe they didn't need it but I'm not sure. For the Bayesian case, it is probably needed.
+        torch.nn.utils.clip_grad_norm_(self._model_and_loss._model.parameters(), 0.1, norm_type='inf')
+        '''
         optimizer.step()
         return loss.item(), torch.sum(preds == y.unsqueeze(1)).item(), y.size(0)
 

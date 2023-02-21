@@ -158,6 +158,8 @@ def main():
         logger.info("[2-2] Set environment for the current task")
         method.set_current_dataset(cur_train_datalist, cur_test_datalist)
         # Increment known class for current task iteration.
+        # reinitalize optimizer and scheduler?
+        # Add the trainable parameters for the optimizer
         method.before_task(cur_train_datalist, cur_iter, args.init_model, args.init_opt)
 
         # The way to handle streamed samles

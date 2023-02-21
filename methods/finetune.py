@@ -22,8 +22,7 @@ from utils.augment import Cutout, Invert, Solarize, select_autoaugment
 from utils.data_loader import ImageDataset
 from utils.data_loader import cutmix_data
 from utils.train_utils import select_model, select_optimizer
-
-pdb.set_trace()
+import pdb
 
 logger = logging.getLogger()
 # log = f"tensorboard/Run_{}" ???
@@ -59,8 +58,6 @@ class Finetune:
         self.seen = 0
         self.topk = kwargs["topk"]
 
-        pd.set_trace()
-        # check if the initializations are of classes or only names
         self.device = device
         self.criterion = criterion
         self.dataset = kwargs["dataset"]
@@ -83,6 +80,7 @@ class Finetune:
         if kwargs["mem_manage"] == "default":
             self.mem_manage = "random"
 
+        # here we create the model instance
         self.model = select_model(self.model_name, self.dataset, kwargs["n_init_cls"])
         self.model = self.model.to(self.device)
         self.criterion = self.criterion.to(self.device)
@@ -140,8 +138,11 @@ class Finetune:
         self.model = self.model.to(self.device)
 
         # gives us the possibility to reinitialize the optimizer and scheduler
+        '''ToDo: check if this is true - I think it is becuase there is no other code to initalize the class
+            instance. Also, since we are doing continual learning, it makes sense to reinitialize the optimizer
+            and the scheduler for each task
+        '''
         if init_opt:
-            # reinitialize the optimizer and scheduler - why should we reiniitalize them for continual learning? 
             logger.info("Reset the optimizer and scheduler states")
             self.optimizer, self.scheduler = select_optimizer(
                 self.opt_name, self.lr, self.model, self.sched_name
