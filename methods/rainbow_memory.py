@@ -95,11 +95,14 @@ class RM(Finetune):
 
             train_loss, train_acc = self._train(train_loader=train_loader, memory_loader=memory_loader,
                                                 optimizer=self.optimizer, criterion=self.criterion)
+            
+            # EVAL - testing over all the test sets seen so far
             eval_dict = self.evaluation(
                 test_loader=test_loader, criterion=self.criterion
             )
             writer.add_scalar(f"task{cur_iter}/train/loss", train_loss, epoch)
             writer.add_scalar(f"task{cur_iter}/train/acc", train_acc, epoch)
+            # add a plot for total loss and xe loss for the Bayesian case
             writer.add_scalar(f"task{cur_iter}/test/loss", eval_dict["avg_loss"], epoch)
             writer.add_scalar(f"task{cur_iter}/test/acc", eval_dict["avg_acc"], epoch)
             writer.add_scalar(
@@ -111,7 +114,7 @@ class RM(Finetune):
                 f"test_loss {eval_dict['avg_loss']:.4f} | test_acc {eval_dict['avg_acc']:.4f} | "
                 f"lr {self.optimizer.param_groups[0]['lr']:.4f}"
             )
-
+            # they report best eval accuracy and not the last one! 
             best_acc = max(best_acc, eval_dict["avg_acc"])
 
         return best_acc, eval_dict
@@ -166,8 +169,9 @@ class RM(Finetune):
 
             x = x.to(self.device)
             y = y.to(self.device)
-
+            # this is equivalent to the step code in the test repo
             l, c, d = self.update_model(x, y, criterion, optimizer)
+            # Compute the moving averages - equivalent to MovingAverage in the test repo
             total_loss += l
             correct += c
             num_data += d

@@ -167,6 +167,8 @@ def main():
 
         if args.stream_env == "offline" or args.mode == "joint" or args.mode == "gdumb":
             # Offline Train
+            # returns best eval accuracy and not the last one
+            # task_acc is the evaluation accuracy and not the training accuracy
             task_acc, eval_dict = method.train(
                 cur_iter=cur_iter,
                 n_epoch=args.n_epoch,
@@ -203,6 +205,7 @@ def main():
 
         logger.info("[2-4] Update the information for the current task")
         method.after_task(cur_iter)
+
         task_records["task_acc"].append(task_acc)
         # task_records['cls_acc'][k][j] = break down j-class accuracy from 'task_acc'
         task_records["cls_acc"].append(eval_dict["cls_acc"])
@@ -210,14 +213,14 @@ def main():
         # Notify to NSML
         logger.info("[2-5] Report task result")
         writer.add_scalar("Metrics/TaskAcc", task_acc, cur_iter)
-
+    # I remember there was an error running this line of code
     np.save(f"results/{save_path}.npy", task_records["task_acc"])
 
     # Accuracy (A)
     A_avg = np.mean(task_records["task_acc"])
     A_last = task_records["task_acc"][args.n_tasks - 1]
 
-    # Forgetting (F)
+    # Forgetting (F) - Read on the formula of Forgetting and understand it - check this code
     acc_arr = np.array(task_records["cls_acc"])
     # cls_acc = (k, j), acc for j at k
     cls_acc = acc_arr.reshape(-1, args.n_cls_a_task).mean(1).reshape(args.n_tasks, -1)
@@ -231,7 +234,7 @@ def main():
         task_records["forget"].append(forget_k)
     F_last = np.mean(task_records["forget"][-1][:-1])
 
-    # Intrasigence (I)
+    # Intrasigence (I) - how much difference from the upper bound
     I_last = args.joint_acc - A_last
 
     logger.info(f"======== Summary =======")
