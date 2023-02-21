@@ -7,7 +7,7 @@ import torch_optimizer
 from easydict import EasyDict as edict
 from torch import optim
 
-from models import mnist, cifar, imagenet
+from models import mnist, cifar, imagenet, cub200
 
 
 def select_optimizer(opt_name, lr, model, sched_name="cos"):
@@ -64,6 +64,8 @@ def select_model(model_name, dataset, num_classes=None):
         model_class = getattr(cifar, "ResNet")
     elif "imagenet" in dataset:
         model_class = getattr(imagenet, "ResNet")
+    elif "cub200" in dataset:
+        model_class = getattr(cub200, "ResNet")
     else:
         raise NotImplementedError(
             "Please select the appropriate datasets (mnist, cifar10, cifar100, imagenet)"

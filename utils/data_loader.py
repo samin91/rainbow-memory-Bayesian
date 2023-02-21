@@ -127,6 +127,7 @@ def get_statistics(dataset: str):
         "imagenet100",
         "imagenet1000",
         "TinyImagenet",
+        "cub200",
     ]
     mean = {
         "mnist": (0.1307,),
@@ -140,6 +141,7 @@ def get_statistics(dataset: str):
         "TinyImagenet": (0.4802, 0.4481, 0.3975),
         "imagenet100": (0.485, 0.456, 0.406),
         "imagenet1000": (0.485, 0.456, 0.406),
+        "cub200": (0.485, 0.456, 0.406),
     }
 
     std = {
@@ -154,6 +156,7 @@ def get_statistics(dataset: str):
         "TinyImagenet": (0.2302, 0.2265, 0.2262),
         "imagenet100": (0.229, 0.224, 0.225),
         "imagenet1000": (0.229, 0.224, 0.225),
+        "cub200": (0.229, 0.224, 0.225),
     }
 
     classes = {
@@ -168,6 +171,7 @@ def get_statistics(dataset: str):
         "TinyImagenet": 200,
         "imagenet100": 100,
         "imagenet1000": 1000,
+        "cub200": 170,
     }
 
     in_channels = {
@@ -182,6 +186,7 @@ def get_statistics(dataset: str):
         "TinyImagenet": 3,
         "imagenet100": 3,
         "imagenet1000": 3,
+        "cub200": 3,
     }
 
     inp_size = {
@@ -196,6 +201,7 @@ def get_statistics(dataset: str):
         "TinyImagenet": 64,
         "imagenet100": 224,
         "imagenet1000": 224,
+        "cub200": 224,
     }
     return (
         mean[dataset],

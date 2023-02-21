@@ -42,9 +42,9 @@ Configure disjoint dataset which does not share the classes of each task.
 origin_name = "cub200" # Need to change the name of your dataset.
 root = Path('../collections/cub200')
 root.mkdir(exist_ok=True)
-
+# TRAIN
 for idx, train_task in enumerate(task_train):
-    file_name = origin_name
+    file_name = origin_name + '_train'
     train_prefix = {'_disjoint':'', 
               '_rand':rnd_seed, 
               '_cls':num_cls_per_task,
@@ -58,9 +58,7 @@ for idx, train_task in enumerate(task_train):
     print(f"{file_path}")
 
 
-    ''' TEST
-    '''
-
+# TEST
 origin_name = "cub200" # Need to change the name of your dataset.
 task_test = [test[test.klass.isin(tc)] for tc in task_class]
 
@@ -68,7 +66,7 @@ root = Path('../collections/cub200')
 root.mkdir(exist_ok=True)
 
 for idx, task in enumerate(task_test):
-    file_name = origin_name
+    file_name = origin_name + '_test'
     prefix = {'_rand':rnd_seed, 
               '_cls':num_cls_per_task,
               '_task':idx
