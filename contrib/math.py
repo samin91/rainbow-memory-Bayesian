@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import torch
-torch.use_deterministic_algorithms(True)
+#torch.use_deterministic_algorithms(True)
 from numbers import Number
 import numpy as np
 

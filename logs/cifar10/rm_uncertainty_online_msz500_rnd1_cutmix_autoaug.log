@@ -1,0 +1,30 @@
+[INFO] main.py:59 > Set the device (cuda)
+[INFO] augment.py:18 > cifar10: autoaugmentation is applied
+[INFO] main.py:104 > Using train-transforms Compose(
+    Resize(size=(32, 32), interpolation=bilinear, max_size=None, antialias=None)
+    RandomCrop(size=(32, 32), padding=4)
+    RandomHorizontalFlip(p=0.5)
+    AutoAugment CIFAR10 Policy
+    ToTensor()
+    Normalize(mean=(0.4914, 0.4822, 0.4465), std=(0.2023, 0.1994, 0.201))
+)
+[INFO] main.py:114 > [1] Select a CIL method (rm)
+[INFO] method_manager.py:97 > CIL Scenario: 
+[INFO] main.py:129 > [2] Incrementally training 5 tasks
+[INFO] main.py:142 > [2-1] Prepare a datalist for the current task
+[INFO] data_loader.py:76 > [Train] Get datalist from cifar10_train_blurry10_rand1_cls2_task0.json
+[INFO] data_loader.py:109 > [Test ] Get datalist from cifar10_test_rand1_cls2_task0.json
+[INFO] data_loader.py:109 > [Test ] Get datalist from cifar10_test_rand1_cls2_task1.json
+[INFO] data_loader.py:109 > [Test ] Get datalist from cifar10_test_rand1_cls2_task2.json
+[INFO] data_loader.py:109 > [Test ] Get datalist from cifar10_test_rand1_cls2_task3.json
+[INFO] data_loader.py:109 > [Test ] Get datalist from cifar10_test_rand1_cls2_task4.json
+[INFO] main.py:159 > [2-2] Set environment for the current task
+[INFO] finetune.py:102 > Apply before_task
+[INFO] finetune.py:146 > Reset the optimizer and scheduler states
+[INFO] finetune.py:151 > Increasing the head of fc 10 -> 10
+[INFO] main.py:167 > [2-3] Start to train under online
+[INFO] main.py:184 > Train over streamed data once
+[INFO] rainbow_memory.py:71 > Streamed samples: 9750
+[INFO] rainbow_memory.py:72 > In-memory samples: 0
+[INFO] rainbow_memory.py:73 > Train samples: 9750
+[INFO] rainbow_memory.py:74 > Test samples: 10000

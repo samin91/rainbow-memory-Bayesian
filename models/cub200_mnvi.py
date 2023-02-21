@@ -5,7 +5,7 @@ from __future__ import print_function
 import torch.nn as nn
 import logging
 import torch
-torch.use_deterministic_algorithms(True, warn_only=True)
+#torch.use_deterministic_algorithms(True, warn_only=True)
 torch.autograd.set_detect_anomaly(True)
 from contrib import varprop
 

@@ -4,7 +4,7 @@ from tkinter import N
 
 import torch
 torch.autograd.set_detect_anomaly(True)
-torch.use_deterministic_algorithms(True)
+#torch.use_deterministic_algorithms(True)
 import torch.nn as nn
 from torch.nn import functional as F
 import pdb

@@ -26,6 +26,7 @@ from utils.method_manager import select_method
 # add the bayesian losses
 from losses import ClassificationLoss, ClassificationLossVI, LBClassificationLossVI
 
+import pdb
 def main():
     args = config.base_parser()
 
@@ -144,7 +145,7 @@ def main():
         eval_dict = dict()
 
         # get datalist
-        # what about validation set? 
+        # what about validation set?
         cur_train_datalist = get_train_datalist(args, cur_iter)
         cur_test_datalist = get_test_datalist(args, args.exp_name, cur_iter)
 
