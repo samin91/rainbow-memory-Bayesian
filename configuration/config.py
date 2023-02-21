@@ -150,20 +150,21 @@ def base_parser():
         help="A type of uncertainty metric",
     )
 
-    # Coreset size of the expanding memory
+     # Coreset size of the expanding memory
     parser.add_argument(
         "--expanding_memeory",
+        action="store_true",
+        help="Growing memory replaces the fixed memory when our dataset has few smaples per task",
+    )
+    # Coreset size of the expanding memory
+    parser.add_argument(
+        "--coreset_size",
         type=int,
         default=50,
         help="The number of samples in the coreset per task",
     )
 
-    # Coreset size of the expanding memory
-    parser.add_argument(
-        "--coreset_size",
-        action="store_true",
-        help="Growing memory replaces the fixed memory when our dataset has few smaples per task",
-    )
+   
 
 
     # Debug
