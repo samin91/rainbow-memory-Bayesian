@@ -224,16 +224,4 @@ bird          50
 deer          50
 Name: klass, dtype: int64
 [INFO] main.py:198 > Train over memory
-[INFO] rainbow_memory.py:71 > Streamed samples: 0
-[INFO] rainbow_memory.py:72 > In-memory samples: 500
-[INFO] rainbow_memory.py:73 > Train samples: 500
-[INFO] rainbow_memory.py:74 > Test samples: 10000
-[INFO] rainbow_memory.py:112 > Task 4 | Epoch 1/1 | train_loss 1.9335 | train_acc 0.3280 | test_loss 2.2048 | test_acc 0.3183 | lr 0.0050
-[INFO] finetune.py:160 > Apply after_task
-[WARNING] finetune.py:219 > Already updated the memory during this iter (4)
-[INFO] main.py:208 > [2-4] Update the information for the current task
-[INFO] finetune.py:160 > Apply after_task
-[WARNING] finetune.py:219 > Already updated the memory during this iter (4)
-[INFO] main.py:216 > [2-5] Report task result
-[INFO] main.py:242 > ======== Summary =======
-[INFO] main.py:243 > A_last 0.3183 | A_avg 0.29608 | F_last 0.14737499924376607 | I_last -0.3183
+[INFO] rainbow_memory.py:

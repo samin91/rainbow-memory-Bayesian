@@ -14,7 +14,7 @@ from methods.finetune import Finetune
 from utils.data_loader import cutmix_data
 
 logger = logging.getLogger()
-writer = SummaryWriter("tensorboard")
+writer = SummaryWriter(f"tensorboard/run_{1}")
 
 
 class L2(Finetune):
