@@ -3,7 +3,7 @@
 # CIL CONFIG
 MODE="rm" # joint, gdumb, icarl, rm, ewc, rwalk, bic   # here I can add the Bayesian method? althoug the Bayesian method is more of a architecture than a method! the loss maybe is! 
 # "default": If you want to use the default memory management method.
-MEM_MANAGE="default" # default, random, reservoir, uncertainty, prototype.
+MEM_MANAGE="uncertainty" # default, random, reservoir, uncertainty, prototype.
 RND_SEED=1
 DATASET="cifar10" # mnist, cifar10, cifar100, imagenet, cub200
 STREAM="online" # offline, online
@@ -97,7 +97,7 @@ else
     exit 1
 fi
 
-CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=2 python main.py --mode $MODE --mem_manage $MEM_MANAGE --exp_name $EXP \
+CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=0 python main.py --mode $MODE --mem_manage $MEM_MANAGE --exp_name $EXP \
 --dataset $DATASET \
 --stream_env $STREAM  $INIT_MODEL $INIT_OPT --topk $TOPK \
 --n_tasks $N_TASKS --n_cls_a_task $N_CLS_A_TASK --n_init_cls $N_INIT_CLS \
