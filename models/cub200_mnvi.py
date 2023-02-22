@@ -7,7 +7,7 @@ import logging
 import torch
 #torch.use_deterministic_algorithms(True, warn_only=True)
 torch.autograd.set_detect_anomaly(True)
-from contrib import varprop
+from models import varprop
 
 import torch.nn.functional as F
 import pdb
