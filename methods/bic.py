@@ -50,7 +50,7 @@ class BiasCorrection(Finetune):
             criterion, device, train_transform, test_transform, n_classes, **kwargs
         )
         self.prev_model = select_model(
-            self.model_name, self.dataset, kwargs["n_init_cls"]
+            self.model_name, self.dataset, kwargs["n_init_cls"], self.bayesian
         )
         self.bias_layer = None
         self.valid_list = []

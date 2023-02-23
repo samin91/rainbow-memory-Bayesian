@@ -83,9 +83,10 @@ class Finetune:
         #-------------------------------------------
         if kwargs["mem_manage"] == "default":
             self.mem_manage = "random"
-
+        # Bayeian Model --------------------------------
+        self.bayesian = kwargs["bayesian_model"]
         # here we create the model instance
-        self.model = select_model(self.model_name, self.dataset, kwargs["n_init_cls"])
+        self.model = select_model(self.model_name, self.dataset, kwargs["n_init_cls"], self.bayesian)
         self.model = self.model.to(self.device)
         self.criterion = self.criterion.to(self.device)
 
@@ -125,7 +126,7 @@ class Finetune:
         if init_model:
             # init model parameters in every iteration
             logger.info("Reset model parameters")
-            self.model = select_model(self.model_name, self.dataset, new_out_features)
+            self.model = select_model(self.model_name, self.dataset, new_out_features, self.bayesian)
         else:
             self.model.fc = nn.Linear(in_features, new_out_features)
 

@@ -36,7 +36,8 @@ class ReLU(nn.Module):
 
 
 class LinearMN(nn.Module):
-    def __init__(self, in_features, out_features, prior_precision=1e0, mnv_init=-3.0, bias=True, eps=1e-10):
+    def __init__(self, in_features, out_features, prior_precision=1e0, mnv_init=-3.0, 
+                 bias=True, eps=1e-10):
         super(LinearMN, self).__init__()
         self.in_features = in_features
         self.out_features = out_features

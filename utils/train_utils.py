@@ -7,8 +7,8 @@ import torch_optimizer
 from easydict import EasyDict as edict
 from torch import optim
 
-from models import mnist, cifar, imagenet, cub200
-
+from models import mnist, cifar, imagenet, cub200, cub200_mnvi
+import pdb
 
 def select_optimizer(opt_name, lr, model, sched_name="cos"):
     if opt_name == "adam":
@@ -41,7 +41,16 @@ def select_optimizer(opt_name, lr, model, sched_name="cos"):
     return opt, scheduler
 
 
-def select_model(model_name, dataset, num_classes=None):
+def select_model(model_name, dataset, num_classes=None, bayesian=False):
+    pdb.set_trace()
+    # send the kearg* to select model, then if bayesian is true, create a new opt
+    # for the bayesian model which contains the prior args
+    '''
+    min_variance=1e-5, 
+    mnv_init=-3.0, 
+    prior_precision=1e0, 
+    prior_mean=0.0
+    '''
     opt = edict(
         {
             "depth": 18,
@@ -55,21 +64,35 @@ def select_model(model_name, dataset, num_classes=None):
             "affine_bn": True,
             "bn_eps": 1e-6,
             "compression": 0.5,
+            "bayesian": bayesian,
         }
     )
-
-    if "mnist" in dataset:
-        model_class = getattr(mnist, "MLP")
-    elif "cifar" in dataset:
-        model_class = getattr(cifar, "ResNet")
-    elif "imagenet" in dataset:
-        model_class = getattr(imagenet, "ResNet")
-    elif "cub200" in dataset:
-        model_class = getattr(cub200, "ResNet")
-    else:
-        raise NotImplementedError(
-            "Please select the appropriate datasets (mnist, cifar10, cifar100, imagenet)"
-        )
+    if bayesian == True:
+        if "mnist" in dataset:
+            model_class = getattr(mnist, "MLP")
+        elif "cifar" in dataset:
+            model_class = getattr(cifar, "ResNet")
+        elif "imagenet" in dataset:
+            model_class = getattr(imagenet, "ResNet")
+        elif "cub200" in dataset:
+            model_class = getattr(cub200_mnvi, "ResNet")
+        else:
+            raise NotImplementedError(
+                "The bayesian model is not implemented for the selected dataset."
+            )
+    else:    
+        if "mnist" in dataset:
+            model_class = getattr(mnist, "MLP")
+        elif "cifar" in dataset:
+            model_class = getattr(cifar, "ResNet")
+        elif "imagenet" in dataset:
+            model_class = getattr(imagenet, "ResNet")
+        elif "cub200" in dataset:
+            model_class = getattr(cub200, "ResNet")
+        else:
+            raise NotImplementedError(
+                "Please select the appropriate datasets (mnist, cifar10, cifar100, imagenet)"
+            )
 
     if model_name == "resnet18":
         opt["depth"] = 18

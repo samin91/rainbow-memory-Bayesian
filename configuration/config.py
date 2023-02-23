@@ -164,6 +164,14 @@ def base_parser():
         help="The number of samples in the coreset per task",
     )
 
+    #Bayesian mode
+    parser.add_argument(
+        "--bayesian_model",
+        action="store_true",
+        help="Use Bayesian model for uncertainty estimation",
+    )
+          
+
    
     # Debug
     parser.add_argument("--debug", action="store_true", help="Turn on Debug mode")

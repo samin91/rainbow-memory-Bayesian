@@ -28,6 +28,8 @@ distilling="--distilling" # Normal BiC. If you do not want to use distilling los
 EXP_MEM="" # True, Flase
 CORSET_SIZE=50
 
+# Bayesian CONFIG
+BAYESIAN="" # True, False
 
 if [ -d "tensorboard" ]; then
     rm -rf tensorboard
@@ -108,4 +110,4 @@ CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=0 python main.py --mode $MODE --mem_
 --n_worker $N_WORKER --n_epoch $N_EPOCH \
 --memory_size $MEM_SIZE --transform $TRANS --uncert_metric $UNCERT_METRIC \
 --feature_size $FEAT_SIZE $distilling --joint_acc $JOINT_ACC \
---expanding_memory $EXP_MEM --coreset_size $CORSET_SIZE
+--expanding_memory $EXP_MEM --coreset_size $CORSET_SIZE --bayesian_model $BAYESIAN

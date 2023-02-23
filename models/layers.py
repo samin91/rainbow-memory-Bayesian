@@ -1,4 +1,5 @@
 from torch import nn
+from models import varprop
 import copy
 
 
@@ -53,7 +54,7 @@ class ConvBlock(nn.Module):
     def forward(self, input):
         return self.block.forward(input)
 
-# shold we reimplelemnt the final block for the Bayesain model? 
+# Shold we reimplelemnt the final block for the Bayesain model? 
 class FCBlock(nn.Module):
     def __init__(self, opt, in_channels, out_channels, bias=False):
         super(FCBlock, self).__init__()
@@ -61,18 +62,32 @@ class FCBlock(nn.Module):
         self.out_channels = out_channels
         self.in_features = in_channels
         self.out_features = out_channels
+        '''
+        if opt.bayesian: 
+            # block refers to basicblock-I'm not sure
+            # code from Jannik's
+            # instantiating the object
+            lin = varprop.LinearMN(
+                512 * block.expansion, num_classes, 
+                mnv_init=self._mnv_init, 
+                prior_precision=self._prior_precision)
+        else:
+        '''
         lin = nn.Linear(in_channels, out_channels, bias=bias)
 
+       
         layer = [lin]
         if opt.bn:
             if opt.preact:
                 bn = getattr(nn, opt.normtype + "1d")(
-                    num_features=in_channels, affine=opt.affine_bn, eps=opt.bn_eps
+                    num_features=in_channels, affine=opt.affine_bn, 
+                    eps=opt.bn_eps
                 )
                 layer = [bn]
             else:
                 bn = getattr(nn, opt.normtype + "1d")(
-                    num_features=out_channels, affine=opt.affine_bn, eps=opt.bn_eps
+                    num_features=out_channels, affine=opt.affine_bn, 
+                    eps=opt.bn_eps
                 )
                 layer = [lin, bn]
 
@@ -92,6 +107,12 @@ class FCBlock(nn.Module):
 def FinalBlock(opt, in_channels, bias=False):
     out_channels = opt.num_classes
     opt = copy.deepcopy(opt)
+    '''
+    if opt.bayesian:
+        opt.bn = False
+        opt.activetype = "None"
+    else: 
+    '''
     if not opt.preact:
         opt.activetype = "None"
     return FCBlock(
