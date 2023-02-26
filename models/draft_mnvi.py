@@ -19,7 +19,8 @@ def head_size(split_targets):
 
 def keep_variance(x, min_variance):
     return x.clamp(min=min_variance)
-
+# why are initializing our bayesian layers with different values tha than 
+# the original pytorch implementation?
 def finitialize(modules, small=False):
     logging.info("Initializing MSRA")
     for layer in modules:
@@ -205,12 +206,13 @@ class ImageResNetMNCL(nn.Module):
         self.groups = groups
         self.base_width = width_per_group
 
-        self.conv1 = varprop.Conv2dMNCL(3, self.inplanes, kernel_size=7, stride=2, padding=3,
-                               bias=False, mnv_init=self._mnv_init, prior_precision=self._prior_precision, prior_mean=self._prior_mean)
+        #self.conv1 = varprop.Conv2dMNCL(3, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False, mnv_init=self._mnv_init, prior_precision=self._prior_precision, prior_mean=self._prior_mean)
+        self.conv1 = varprop.Conv2dMNCL(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False, 
+                                        mnv_init=self._mnv_init, prior_precision=self._prior_precision, prior_mean=self._prior_mean)
         self.bn1 = varprop.BatchNorm2d(self.inplanes)
         self.relu = varprop.ReLU(keep_variance_fn=self._keep_variance_fn)
 
-        self.maxpool = varprop.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        #self.maxpool = varprop.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2,
@@ -223,7 +225,7 @@ class ImageResNetMNCL(nn.Module):
         # to adapt to RM, we need to replaece the fully connected layer 
         self.fc = FinalBlock(opt=opt, in_channels=512 * block.expansion)
         
-        
+        # what about initializing the fc layre inside the final block? 
         finitialize(self.modules(), small=False)
         
 
@@ -279,7 +281,9 @@ class ImageResNetMNCL(nn.Module):
         x = self.conv1(x, x_variance)
         x = self.bn1(*x)
         x = self.relu(*x)
-        x = self.maxpool(*x) #remove max_pooling because the implementation of this layer is non-deterministic 
+        # Remove max_pooling because the implementation of 
+        # this layer is non-deterministic 
+        #x = self.maxpool(*x)
         
         x = self.layer1(*x)
         x = self.layer2(*x)
@@ -314,12 +318,61 @@ class ImageResNetMNCL(nn.Module):
 
     def forward(self, x):
         #pdb.set_trace()
-        return self._forward_impl(x)   
+        return self._forward_impl(x)
+    
+    # Extra functions that only apply to the Bayesian model in CL scenario
+    def kl_div(self):
+        kl = 0.0
+        for module in self.modules():
+            if isinstance(module, (varprop.LinearMNCL, varprop.Conv2dMNCL)):
+                kl += module.kl_div()
+        # here we need to multiply the kl with the weight as well: self._kl_div_weight
+        return kl
+
+    def save_prior_and_weights(self, prior_conv_func):
+            for module in self.modules():
+                if isinstance(module, (varprop.LinearMNCL, varprop.Conv2dMNCL)):
+                    module.save_prior_and_weights(prior_conv_func)
+
+    def update_prior(self):
+        for module in self.modules():
+            if isinstance(module, (varprop.LinearMNCL, varprop.Conv2dMNCL)):
+                module.update_prior()
+    
+    def update_prior_and_weights_from_saved(self):
+            for module in self.modules():
+                if isinstance(module, (varprop.LinearMNCL, varprop.Conv2dMNCL)):
+                    module.update_prior_and_weights_from_saved()
+
+    def update_weights_from_saved(self):
+        for module in self.modules():
+            if isinstance(module, (varprop.LinearMNCL, varprop.Conv2dMNCL)):
+                module.update_weights_from_saved()
+
+    def get_variance(self):
+        raw_variances = []
+        variances = []
+        for module in self.modules():
+            if isinstance(module, (varprop.LinearMNCL, varprop.Conv2dMNCL)):
+                raw_var, var = module.get_variance()
+                raw_variances.append(raw_var)
+                variances.append(var)
+        
+        return raw_variances, variances
+
+    def get_prior_variance(self):
+        prior_variances = []
+        for module in self.modules():
+            if isinstance(module, (varprop.LinearMNCL, varprop.Conv2dMNCL)):
+                prior_variances.append(module.get_prior_variance())
+
+        return prior_variances
 
 def ResNet(opt):
-    
+    # how to access the above function when here we have a sunction and not a class? 
     if opt.depth==18:
         model = ImageResNetMNCL(opt, BasicBlock, [2, 2, 2, 2])
     elif opt.depth == 34:
-        model = ImageResNetMNCL(opt, BasicBlock, [3, 4, 6, 3]) 
+        model = ImageResNetMNCL(opt, BasicBlock, [3, 4, 6, 3])
+    # I can create a dictionary from the output of the model 
     return model

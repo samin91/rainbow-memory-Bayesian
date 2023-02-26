@@ -74,9 +74,9 @@ class FCBlock(nn.Module):
         else:
         '''
         lin = nn.Linear(in_channels, out_channels, bias=bias)
-
-       
         layer = [lin]
+        # Why do we need these parts? 
+        '''
         if opt.bn:
             if opt.preact:
                 bn = getattr(nn, opt.normtype + "1d")(
@@ -97,7 +97,7 @@ class FCBlock(nn.Module):
 
         if opt.bn and opt.preact:
             layer.append(lin)
-
+        '''
         self.block = nn.Sequential(*layer)
 
     def forward(self, input):
