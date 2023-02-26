@@ -6,9 +6,9 @@ MODE="rm" # joint, gdumb, icarl, rm, ewc, rwalk, bic   # here I can add the Baye
 MEM_MANAGE="uncertainty" # default, random, reservoir, uncertainty, prototype.
 RND_SEED=3
 DATASET="cifar10" # mnist, cifar10, cifar100, imagenet, cub200
-STREAM="online" # offline, online
+STREAM="offline" # offline, online
 EXP="disjoint" # disjoint, blurry10, blurry30
-MEM_SIZE=500 # cifar10: k={200, 500, 1000}, mnist: k=500, cifar100: k=2,000, imagenet: k=20,000, cub200:k={340}
+MEM_SIZE=340 # cifar10: k={200, 500, 1000}, mnist: k=500, cifar100: k=2,000, imagenet: k=20,000, cub200:k={340}
 TRANS="cutmix autoaug" # multiple choices: cutmix, cutout, randaug, autoaug
 
 N_WORKER=4
@@ -30,6 +30,18 @@ CORSET_SIZE=50
 
 # Bayesian CONFIG
 BAYESIAN="" # True, False
+    '''
+    min_variance=1e-5, 
+    mnv_init=-3.0, 
+    prior_precision=1e0, 
+    prior_mean=0.0,
+    model_kl_div_weight=5e-7
+    '''
+MEAN_VARIANCE = 1e-5
+MNV_INIT = -3.0
+PRIOR_PRECISION = 1e0
+PRIOR_MEAN = 0.0
+KL_DIV_WEIGHT = 5e-7
 
 if [ -d "tensorboard" ]; then
     rm -rf tensorboard
@@ -110,4 +122,5 @@ CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=0 python main.py --mode $MODE --mem_
 --n_worker $N_WORKER --n_epoch $N_EPOCH \
 --memory_size $MEM_SIZE --transform $TRANS --uncert_metric $UNCERT_METRIC \
 --feature_size $FEAT_SIZE $distilling --joint_acc $JOINT_ACC \
---expanding_memory $EXP_MEM --coreset_size $CORSET_SIZE --bayesian_model $BAYESIAN
+--expanding_memory $EXP_MEM --coreset_size $CORSET_SIZE --bayesian_model $BAYESIAN --min_variance $MEAN_VARIANCE \
+--mnv_init $MNV_INIT --prior_precision $PRIOR_PRECISION --prior_mean $PRIOR_MEAN --kl_div_weight $KL_DIV_WEIGHT \

@@ -170,6 +170,46 @@ def base_parser():
         action="store_true",
         help="Use Bayesian model for uncertainty estimation",
     )
+    '''
+    min_variance=1e-5, 
+    mnv_init=-3.0, 
+    prior_precision=1e0, 
+    prior_mean=0.0,
+    model_kl_div_weight
+    '''
+    # Bayesian arguments 
+    parser.add_argument(
+        "--min_variance",
+        type=float,
+        default=1e-5,
+        help="Minimum variance for Bayesian model",
+    )
+    parser.add_argument(
+        "--mnv_init",
+        type=float,
+        default=-3.0,
+        help="Initial value for Bayesian model",
+    )
+
+    parser.add_argument(
+        "--prior_precision",
+        type=float,
+        default=1e0,
+        help="Prior precision for Bayesian model",
+    )
+    parser.add_argument(
+        "--prior_mean",
+        type=float,
+        default=0.0,
+        help="Prior mean for Bayesian model",
+    )
+    parser.add_argument(
+        "--model_kl_div_weight",
+        type=float,
+        default=1.0,
+        help="KL divergence weight for Bayesian model",
+    )
+
           
 
    

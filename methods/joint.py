@@ -15,7 +15,7 @@ class Joint(Finetune):
             criterion, device, train_transform, test_transform, n_classes, **kwargs
         )
 
-        self.model = select_model(self.model_name, self.dataset, n_classes, self.bayesian)
+        self.model = select_model(self.model_name, self.dataset, n_classes, self.kwargs)
         self.optimizer, self.scheduler = select_optimizer(
             kwargs["opt_name"], kwargs["lr"], self.model
         )

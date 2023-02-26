@@ -19,11 +19,12 @@ class GDumb(Finetune):
             criterion, device, train_transform, test_transform, n_classes, **kwargs
         )
         self.n_tasks = kwargs["n_tasks"]
+        self.kwargs = kwargs
 
     def train(self, cur_iter, n_epoch, batch_size, n_worker):
         logger.info("Reset model parameters")
         self.model = select_model(
-            self.model_name, self.dataset, self.num_learning_class, self.bayesian
+            self.model_name, self.dataset, self.num_learning_class, self.kwargs
         )
         self.model = self.model.to(self.device)
 

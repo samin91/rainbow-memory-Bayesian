@@ -7,7 +7,7 @@ import torch_optimizer
 from easydict import EasyDict as edict
 from torch import optim
 
-from models import mnist, cifar, imagenet, cub200, cub200_mnvi
+from models import cub200_mnvi_o, mnist, cifar, imagenet, cub200
 import pdb
 
 def select_optimizer(opt_name, lr, model, sched_name="cos"):
@@ -41,15 +41,16 @@ def select_optimizer(opt_name, lr, model, sched_name="cos"):
     return opt, scheduler
 
 
-def select_model(model_name, dataset, num_classes=None, bayesian=False):
+def select_model(model_name, dataset, num_classes=None, kwargs=None):
     pdb.set_trace()
-    # send the kearg* to select model, then if bayesian is true, create a new opt
+    # send the kwarg* to select model, then if bayesian is true, create a new opt
     # for the bayesian model which contains the prior args
     '''
     min_variance=1e-5, 
     mnv_init=-3.0, 
     prior_precision=1e0, 
-    prior_mean=0.0
+    prior_mean=0.0,
+    model_kl_div_weight
     '''
     opt = edict(
         {
@@ -64,10 +65,15 @@ def select_model(model_name, dataset, num_classes=None, bayesian=False):
             "affine_bn": True,
             "bn_eps": 1e-6,
             "compression": 0.5,
-            "bayesian": bayesian,
+            "bayesian": kwargs['bayesian'],
+            "min_variance": kwargs['min_variance'],
+            "mnv_init": kwargs['mnv_init'],
+            "prior_precision": kwargs['prior_precision'],
+            "prior_mean": kwargs['prior_mean'],
+            "model_kl_div_weight": kwargs['model_kl_div_weight'],
         }
     )
-    if bayesian == True:
+    if kwargs['bayesian'] == True:
         if "mnist" in dataset:
             model_class = getattr(mnist, "MLP")
         elif "cifar" in dataset:
@@ -75,7 +81,7 @@ def select_model(model_name, dataset, num_classes=None, bayesian=False):
         elif "imagenet" in dataset:
             model_class = getattr(imagenet, "ResNet")
         elif "cub200" in dataset:
-            model_class = getattr(cub200_mnvi, "ResNet")
+            model_class = getattr(cub200_mnvi_o, "ResNet")
         else:
             raise NotImplementedError(
                 "The bayesian model is not implemented for the selected dataset."

@@ -86,7 +86,7 @@ class Finetune:
         # Bayeian Model --------------------------------
         self.bayesian = kwargs["bayesian_model"]
         # here we create the model instance
-        self.model = select_model(self.model_name, self.dataset, kwargs["n_init_cls"], self.bayesian)
+        self.model = select_model(self.model_name, self.dataset, kwargs["n_init_cls"], **kwargs)
         self.model = self.model.to(self.device)
         self.criterion = self.criterion.to(self.device)
 
@@ -96,6 +96,7 @@ class Finetune:
 
         self.uncert_metric = kwargs["uncert_metric"]
         # self.cub200_mnvi = kwargs["cub200_mnview"]
+        self.kwargs = kwargs
 
     def set_current_dataset(self, train_datalist, test_datalist):
         random.shuffle(train_datalist)
@@ -126,7 +127,7 @@ class Finetune:
         if init_model:
             # init model parameters in every iteration
             logger.info("Reset model parameters")
-            self.model = select_model(self.model_name, self.dataset, new_out_features, self.bayesian)
+            self.model = select_model(self.model_name, self.dataset, new_out_features, self.kwargs)
         else:
             self.model.fc = nn.Linear(in_features, new_out_features)
 
