@@ -6,7 +6,7 @@ from models.layers import ConvBlock, InitialBlock, FinalBlock
 from models import varprop
 import torch.nn.functional as F
 import logging
-
+import pdb
 #torch.use_deterministic_algorithms(True, warn_only=True)
 torch.autograd.set_detect_anomaly(True)
 
@@ -155,14 +155,6 @@ class ImageResNetMNCL(nn.Module):
     def __init__(self, opt, block, layers, zero_init_residual=False, 
                  groups=1, width_per_group=64, replace_stride_with_dilation=None,
                  norm_layer=None
-                 '''
-                 # these should be inside opt-taken as args
-                 , 
-                 min_variance=1e-5, 
-                 mnv_init=-3.0, 
-                 prior_precision=1e0, 
-                 prior_mean=0.0
-                 '''
                  ):
         super(ImageResNetMNCL, self).__init__()
 
@@ -171,10 +163,10 @@ class ImageResNetMNCL(nn.Module):
             norm_layer = varprop.BatchNorm2d
         self._norm_layer = norm_layer
 
-        self._keep_variance_fn = lambda x: keep_variance(x, min_variance=min_variance)
-        self._mnv_init = mnv_init
-        self._prior_precision = prior_precision
-        self._prior_mean = prior_mean
+        self._keep_variance_fn = lambda x: keep_variance(x, min_variance=opt["min_variance"])
+        self._mnv_init = opt["mnv_init"]
+        self._prior_precision = opt["prior_precision"]
+        self._prior_mean = opt["prior_mean"]
         # calculate num_classes
         '''
         self.num_classes = head_size(args.split_targets)
@@ -207,7 +199,7 @@ class ImageResNetMNCL(nn.Module):
         self.base_width = width_per_group
 
         #self.conv1 = varprop.Conv2dMNCL(3, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False, mnv_init=self._mnv_init, prior_precision=self._prior_precision, prior_mean=self._prior_mean)
-        self.conv1 = varprop.Conv2dMNCL(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False, 
+        self.conv1 = varprop.Conv2dMNCL(3, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False, 
                                         mnv_init=self._mnv_init, prior_precision=self._prior_precision, prior_mean=self._prior_mean)
         self.bn1 = varprop.BatchNorm2d(self.inplanes)
         self.relu = varprop.ReLU(keep_variance_fn=self._keep_variance_fn)
@@ -224,8 +216,11 @@ class ImageResNetMNCL(nn.Module):
         self.avgpool = varprop.AdaptiveAvgPool2d()
         # to adapt to RM, we need to replaece the fully connected layer
         # it is a sequential object
-        self.fc = FinalBlock(opt=opt, in_channels=512 * block.expansion)
-        
+        #self.fc = FinalBlock(opt=opt, in_channels=512 * block.expansion)
+        self.fc = varprop.LinearMNCL(512 * block.expansion, 
+                                    self.opt["num_classes"],
+                                    mnv_init=opt.mnv_init, 
+                                    prior_precision=opt.prior_precision)
         # what about initializing the fc layre inside the final block? 
         finitialize(self.modules(), small=False)
         
@@ -277,7 +272,7 @@ class ImageResNetMNCL(nn.Module):
 
 
     def _forward_impl(self, x):
-        
+        pdb.set_trace()
         x_variance = torch.zeros_like(x)
         x = self.conv1(x, x_variance)
         x = self.bn1(*x)
@@ -294,10 +289,9 @@ class ImageResNetMNCL(nn.Module):
         x_mean, x_variance = self.avgpool(*x)
         x_mean = torch.flatten(x_mean, 1)
         x_variance = torch.flatten(x_variance, 1)
-        out_mean, out_variance = self.fc(x_mean, x_variance)
+        out_mean, out_variance = self.fc.forward(x_mean, x_variance)
         # out_mean, out_variance = self.fc3[self._active_task](x_mean, x_variance)
-
-        return out_mean, out_variance
+        return {'prediction_mean':out_mean, 'prediction_variance':out_variance, 'kl_div':self.kl_div}
 
     def forward_sampling(self, inputs):
         
@@ -318,17 +312,19 @@ class ImageResNetMNCL(nn.Module):
         return out
 
     def forward(self, x):
-        #pdb.set_trace()
+        pdb.set_trace()
         return self._forward_impl(x)
     
     # Extra functions that only apply to the Bayesian model in CL scenario
     def kl_div(self):
+        kl_div_weight = self.opt["model_kl_div_weight"]
         kl = 0.0
         for module in self.modules():
             if isinstance(module, (varprop.LinearMNCL, varprop.Conv2dMNCL)):
                 kl += module.kl_div()
         # here we need to multiply the kl with the weight as well: self._kl_div_weight
-        return kl
+
+        return kl*kl_div_weight
 
     def save_prior_and_weights(self, prior_conv_func):
             for module in self.modules():

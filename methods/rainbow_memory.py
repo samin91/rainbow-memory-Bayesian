@@ -14,6 +14,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from methods.finetune import Finetune
 from utils.data_loader import cutmix_data, ImageDataset
+import pdb
 
 logger = logging.getLogger()
 # log = f"tensorboard/Run_{}" ???
@@ -38,6 +39,7 @@ class RM(Finetune):
         self.batch_size = kwargs["batchsize"]
         self.n_worker = kwargs["n_worker"]
         self.exp_env = kwargs["stream_env"]
+        self.bayesian = kwargs["bayesian_model"]
         if kwargs["mem_manage"] == "default":
             self.mem_manage = "uncertainty"
 
@@ -120,19 +122,35 @@ class RM(Finetune):
         return best_acc, eval_dict
 
     def update_model(self, x, y, criterion, optimizer):
+        # chekc the label type, output of the bayesian model
+        pdb.set_trace()
         optimizer.zero_grad()
 
         do_cutmix = self.cutmix and np.random.rand(1) < 0.5
         if do_cutmix:
             x, labels_a, labels_b, lam = cutmix_data(x=x, y=y, alpha=1.0)
-            logit = self.model(x)
-            loss = lam * criterion(logit, labels_a) + (1 - lam) * criterion(
-                logit, labels_b
-            )
+            # take care of the output of the bayesian model and its probabilistic loss
+            if self.bayesian:
+                logit_dict = self.model(x)
+                losses_dict = lam * criterion(logit_dict, labels_a) + (1 - lam) * criterion(
+                    logit_dict, labels_b)
+                loss = losses_dict['total_loss']
+                
+            else:
+                logit = self.model(x)
+                loss = lam * criterion(logit, labels_a) + (1 - lam) * criterion(
+                    logit, labels_b
+                )
         else:
-            logit = self.model(x)
-            loss = criterion(logit, y)
+            if self.bayesian:
+                logit_dict = self.model(x)
+                losses_dict = criterion(logit_dict, y)
+                loss = losses_dict['total_loss']
+            else:
+                logit = self.model(x)
+                loss = criterion(logit, y)
 
+        # calculate the number of correct predictions per batch for the bayesian model as well here
         _, preds = logit.topk(self.topk, 1, True, True)
 
         loss.backward()

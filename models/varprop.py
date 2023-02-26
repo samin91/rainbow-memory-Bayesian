@@ -70,7 +70,98 @@ class LinearMN(nn.Module):
         kld = 0.5 * (-torch.log(F.softplus(self.mult_noise_variance) * self.weight**2 + self.eps) \
             + self.prior_precision * ((1 + F.softplus(self.mult_noise_variance)) * self.weight**2)).sum()
         return kld
+    
 
+class LinearMNCL(nn.Module):
+    def __init__(self, in_features, out_features, prior_precision=1e0, prior_mean=0.0, mnv_init=-3.0, bias=True, eps=1e-10):
+        super(LinearMNCL, self).__init__()
+        pdb.set_trace()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.eps = eps
+        self.has_bias = bias
+
+        self.mult_noise_variance = Parameter(torch.ones(in_features) * mnv_init)
+        self.weight = Parameter(torch.Tensor(out_features, in_features))
+        self.register_buffer("mult_noise_variance_copy", torch.zeros(in_features))
+        self.register_buffer("weight_copy", torch.zeros(out_features, in_features))
+        self.register_buffer("prior_precision", torch.ones_like(self.weight) * prior_precision)
+        self.register_buffer("saved_prior_precision", torch.ones_like(self.weight) * prior_precision)
+        self.register_buffer("prior_mean", torch.ones_like(self.weight) * prior_mean)
+        self.register_buffer("saved_prior_mean", torch.ones_like(self.weight) * prior_mean)
+        if self.has_bias:
+            self.bias = Parameter(torch.Tensor(out_features))
+            self.register_buffer('bias_copy', torch.zeros(out_features))
+        else:
+            self.register_parameter('bias', None)
+
+    def forward(self, inputs_mean, inputs_variance):
+        pdb.set_trace()
+        #if self._keep_variance_fn is not None:
+        #    inputs_variance = self._keep_variance_fn(inputs_variance)
+        outputs_mean = F.linear(inputs_mean, self.weight, self.bias)
+        outputs_variance = F.linear((1 + F.softplus(self.mult_noise_variance)) * inputs_variance \
+            + F.softplus(self.mult_noise_variance) * inputs_mean**2, self.weight**2)
+        return outputs_mean, outputs_variance
+
+    def forward_sampling(self, inputs):
+        outputs_mean = F.linear(inputs, self.weight, self.bias)
+        outputs_variance = F.linear(F.softplus(self.mult_noise_variance) * inputs**2, self.weight**2)
+        normal_dist = torch.distributions.normal.Normal(torch.zeros_like(outputs_mean), torch.ones_like(outputs_mean))
+        normals = normal_dist.sample()
+        outputs_sample = outputs_mean + torch.sqrt(outputs_variance) * normals
+        return outputs_sample
+
+    def kl_div(self):
+        kld = 0.5 * (-torch.log(F.softplus(self.mult_noise_variance) * self.weight**2 * self.prior_precision + self.eps)
+                    + self.prior_precision * (F.softplus(self.mult_noise_variance) * self.weight**2 + (self.prior_mean - self.weight)**2)
+                    - 1).sum()
+        #kld = 0.5 * (torch.log((self.prior_variance / ((F.softplus(self.mult_noise_variance) * self.weight**2) + self.eps)) + self.eps) \
+        #    + (((F.softplus(self.mult_noise_variance) * self.weight**2) + (self.prior_mean - self.weight)**2) / (self.prior_variance + self.eps)) - 1).sum()
+        return kld
+
+    def save_prior_and_weights(self, prior_conv_func):
+        self.mult_noise_variance_copy = self.mult_noise_variance.clone().detach().data
+        self.weight_copy = self.weight.clone().detach().data
+        if self.has_bias:
+            self.bias_copy = self.bias.clone().detach().data
+        self.saved_prior_mean = self.weight_copy.clone().detach().data
+        self.saved_prior_precision = (1. / prior_conv_func(F.softplus(self.mult_noise_variance_copy) * self.weight_copy**2)).clone().detach().data
+        
+
+    def update_prior(self):
+        self.prior_precision = (1. / (F.softplus(self.mult_noise_variance) * self.weight**2)).clone().detach().data
+        self.prior_mean = self.weight.clone().detach().data
+
+    def update_weights_from_saved(self):
+        self.mult_noise_variance.data = self.mult_noise_variance_copy.clone().detach().data
+        self.weight.data = self.weight_copy.clone().detach().data
+        if self.has_bias:
+            self.bias.data = self.bias_copy.clone().detach().data
+        
+    def update_prior_and_weights_from_saved(self):
+        self.prior_precision = self.saved_prior_precision.clone().detach().data
+        self.prior_mean = self.saved_prior_mean.clone().detach().data
+        self.mult_noise_variance.data = self.mult_noise_variance_copy.clone().detach().data
+        self.weight.data = self.weight_copy.clone().detach().data
+        if self.has_bias:
+            self.bias.data = self.bias_copy.clone().detach().data
+
+    def get_variance(self):
+        multi_noise_var_copy = self.mult_noise_variance.clone().detach().cpu()
+        weight_copy = self.weight.clone().detach().cpu()
+        return multi_noise_var_copy, F.softplus(multi_noise_var_copy) * weight_copy**2
+
+    def get_prior_variance(self):
+        return 1. / self.prior_precision.clone().detach().cpu()
+
+    def reset_grad(self):
+        self.mult_noise_variance.grad = None
+        self.weight.grad = None
+        if self.has_bias:
+            self.bias.grad = None
+
+'''
 class LinearMNCL(nn.Module):
     def __init__(self, in_features, out_features, current_task, split_targets, label_trick_valid, coreset_training, coreset_kld, prior_precision=1e0, prior_mean=0.0, mnv_init=-3.0, bias=True, eps=1e-10):
         super(LinearMNCL, self).__init__()
@@ -151,11 +242,11 @@ class LinearMNCL(nn.Module):
         self.weight_copy = self.weight.clone().detach().data
         if self.has_bias:
             self.bias_copy = self.bias.clone().detach().data
-        '''
-        if args.label_trick is not True:
-                self.saved_prior_mean = self.weight_copy.clone().detach().data
-                self.saved_prior_precision = (1. / prior_conv_func(F.softplus(self.mult_noise_variance_copy) * self.weight_copy**2)).clone().detach().data
-        '''
+       
+        #if args.label_trick is not True:
+        #        self.saved_prior_mean = self.weight_copy.clone().detach().data
+        #        self.saved_prior_precision = (1. / prior_conv_func(F.softplus(self.mult_noise_variance_copy) * self.weight_copy**2)).clone().detach().data
+       
 
     def update_prior(self):
         self.prior_precision = (1. / (F.softplus(self.mult_noise_variance) * self.weight**2)).clone().detach().data
@@ -168,11 +259,11 @@ class LinearMNCL(nn.Module):
             self.bias.data = self.bias_copy.clone().detach().data
         
     def update_prior_and_weights_from_saved(self):
-        '''
-        if args.label_trick is not True:
-                self.prior_precision = self.saved_prior_precision.clone().detach().data
-                self.prior_mean = self.saved_prior_mean.clone().detach().data
-        '''
+       
+        #if args.label_trick is not True:
+        #        self.prior_precision = self.saved_prior_precision.clone().detach().data
+        #        self.prior_mean = self.saved_prior_mean.clone().detach().data
+        
         self.mult_noise_variance.data = self.mult_noise_variance_copy.clone().detach().data
         self.weight.data = self.weight_copy.clone().detach().data
         if self.has_bias:
@@ -279,9 +370,7 @@ class LinearMNCL_Single_Head(nn.Module):
 
     def get_prior_variance(self):
         return 1. / self.prior_precision.clone().detach().cpu()
-
-
-
+'''
 
 class LinearMF(nn.Module):
     def __init__(self, in_features, out_features, prior_precision=1e0, bias=True, eps=1e-10):
@@ -714,6 +803,7 @@ class Conv2dMF(_ConvNd):
             self.bias_variance = Parameter(torch.ones_like(self.bias) * log_var_init)
 
     def forward(self, inputs_mean, inputs_variance):
+
         outputs_mean = F.conv2d(
             inputs_mean, self.weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
         outputs_variance = F.conv2d(inputs_mean**2,

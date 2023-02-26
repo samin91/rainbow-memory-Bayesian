@@ -7,7 +7,7 @@ import torch_optimizer
 from easydict import EasyDict as edict
 from torch import optim
 
-from models import cub200_mnvi_o, mnist, cifar, imagenet, cub200
+from models import cub200_mnvi, mnist, cifar, imagenet, cub200
 import pdb
 
 def select_optimizer(opt_name, lr, model, sched_name="cos"):
@@ -65,7 +65,7 @@ def select_model(model_name, dataset, num_classes=None, kwargs=None):
             "affine_bn": True,
             "bn_eps": 1e-6,
             "compression": 0.5,
-            "bayesian": kwargs['bayesian'],
+            "bayesian": kwargs['bayesian_model'],
             "min_variance": kwargs['min_variance'],
             "mnv_init": kwargs['mnv_init'],
             "prior_precision": kwargs['prior_precision'],
@@ -73,7 +73,7 @@ def select_model(model_name, dataset, num_classes=None, kwargs=None):
             "model_kl_div_weight": kwargs['model_kl_div_weight'],
         }
     )
-    if kwargs['bayesian'] == True:
+    if kwargs['bayesian_model'] == True:
         if "mnist" in dataset:
             model_class = getattr(mnist, "MLP")
         elif "cifar" in dataset:
@@ -81,7 +81,7 @@ def select_model(model_name, dataset, num_classes=None, kwargs=None):
         elif "imagenet" in dataset:
             model_class = getattr(imagenet, "ResNet")
         elif "cub200" in dataset:
-            model_class = getattr(cub200_mnvi_o, "ResNet")
+            model_class = getattr(cub200_mnvi, "ResNet")
         else:
             raise NotImplementedError(
                 "The bayesian model is not implemented for the selected dataset."

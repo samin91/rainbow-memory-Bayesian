@@ -38,6 +38,7 @@ class ClassificationLossVI(nn.Module):
             losses = {}
             normals =  normal_dist.sample()
             prediction = prediction_mean + torch.sqrt(prediction_variance) * normals
+            # this needs to be either computed on the cpu or reimplemented in cuda
             loss = F.cross_entropy(prediction, target_expanded, reduction='mean')
             kl_div = output_dict['kl_div']
             losses['total_loss'] = loss + kl_div()

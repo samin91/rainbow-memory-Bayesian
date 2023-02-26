@@ -22,6 +22,7 @@ from utils.augment import Cutout, Invert, Solarize, select_autoaugment
 from utils.data_loader import ImageDataset
 from utils.data_loader import cutmix_data
 from utils.train_utils import select_model, select_optimizer
+from models import varprop
 import pdb
 
 logger = logging.getLogger()
@@ -85,8 +86,9 @@ class Finetune:
             self.mem_manage = "random"
         # Bayeian Model --------------------------------
         self.bayesian = kwargs["bayesian_model"]
+        self.kwargs = kwargs
         # here we create the model instance
-        self.model = select_model(self.model_name, self.dataset, kwargs["n_init_cls"], **kwargs)
+        self.model = select_model(self.model_name, self.dataset, kwargs["n_init_cls"], self.kwargs)
         self.model = self.model.to(self.device)
         self.criterion = self.criterion.to(self.device)
 
@@ -104,7 +106,7 @@ class Finetune:
         self.streamed_list = train_datalist
         self.test_list = test_datalist
 
-    def before_task(self, datalist, cur_iter, init_model=False, init_opt=True):
+    def before_task(self, datalist, cur_iter, init_model=False, init_opt=True, bayesian=False):
         logger.info("Apply before_task")
         incoming_classes = pd.DataFrame(datalist)["klass"].unique().tolist()
         self.exposed_classes = list(set(self.learned_classes + incoming_classes))
@@ -129,7 +131,22 @@ class Finetune:
             logger.info("Reset model parameters")
             self.model = select_model(self.model_name, self.dataset, new_out_features, self.kwargs)
         else:
-            self.model.fc = nn.Linear(in_features, new_out_features)
+            if bayesian is True:
+                # what happens to the pre-trained weights?
+                self.model.fc = varprop.LinearMNCL(in_features, new_out_features)
+                '''
+                # does this weight initialization take place automatically? - since the model is defined once before the task training
+                #, I do not think so. I prefer to initialize the classifier weights again
+                for layer in self.model.modules():
+                    if isinstance(layer, varprop.LinearMNCL):
+                        nn.init.kaiming_normal_(layer.weight)
+                        if small:
+                            layer.weight.data.mul_(0.001)
+                        if layer.bias is not None:
+                            nn.init.constant_(layer.bias, 0)
+                '''
+            else:
+                self.model.fc = nn.Linear(in_features, new_out_features)
 
         
         '''ToDO: Check if this all the layers of the Bayesian model and 

@@ -5,7 +5,7 @@ MODE="rm" # joint, gdumb, icarl, rm, ewc, rwalk, bic   # here I can add the Baye
 # "default": If you want to use the default memory management method.
 MEM_MANAGE="uncertainty" # default, random, reservoir, uncertainty, prototype.
 RND_SEED=3
-DATASET="cifar10" # mnist, cifar10, cifar100, imagenet, cub200
+DATASET="cub200" # mnist, cifar10, cifar100, imagenet, cub200
 STREAM="offline" # offline, online
 EXP="disjoint" # disjoint, blurry10, blurry30
 MEM_SIZE=340 # cifar10: k={200, 500, 1000}, mnist: k=500, cifar100: k=2,000, imagenet: k=20,000, cub200:k={340}
@@ -30,23 +30,18 @@ CORSET_SIZE=50
 
 # Bayesian CONFIG
 BAYESIAN="" # True, False
-    '''
-    min_variance=1e-5, 
-    mnv_init=-3.0, 
-    prior_precision=1e0, 
-    prior_mean=0.0,
-    model_kl_div_weight=5e-7
-    '''
-MEAN_VARIANCE = 1e-5
-MNV_INIT = -3.0
-PRIOR_PRECISION = 1e0
-PRIOR_MEAN = 0.0
-KL_DIV_WEIGHT = 5e-7
+MEAN_VARIANCE=1e-5
+MNV_INIT=-3.0
+PRIOR_PRECISION=1e0
+PRIOR_MEAN=0.0
+KL_DIV_WEIGHT=5e-7
 
 if [ -d "tensorboard" ]; then
     rm -rf tensorboard
     echo "Remove the tensorboard dir"
 fi
+
+
 
 if [ "$DATASET" == "mnist" ]; then
     TOTAL=50000 N_VAL=250 N_CLASS=10 TOPK=1
@@ -112,7 +107,7 @@ else
     exit 1
 fi
 
-CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=0 python main.py --mode $MODE --mem_manage $MEM_MANAGE --exp_name $EXP \
+CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=2 python main.py --mode $MODE --mem_manage $MEM_MANAGE --exp_name $EXP \
 --dataset $DATASET \
 --stream_env $STREAM  $INIT_MODEL $INIT_OPT --topk $TOPK \
 --n_tasks $N_TASKS --n_cls_a_task $N_CLS_A_TASK --n_init_cls $N_INIT_CLS \
@@ -123,4 +118,4 @@ CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=0 python main.py --mode $MODE --mem_
 --memory_size $MEM_SIZE --transform $TRANS --uncert_metric $UNCERT_METRIC \
 --feature_size $FEAT_SIZE $distilling --joint_acc $JOINT_ACC \
 --expanding_memory $EXP_MEM --coreset_size $CORSET_SIZE --bayesian_model $BAYESIAN --min_variance $MEAN_VARIANCE \
---mnv_init $MNV_INIT --prior_precision $PRIOR_PRECISION --prior_mean $PRIOR_MEAN --kl_div_weight $KL_DIV_WEIGHT \
+--mnv_init $MNV_INIT --prior_precision $PRIOR_PRECISION --prior_mean $PRIOR_MEAN --model_kl_div_weight $KL_DIV_WEIGHT \

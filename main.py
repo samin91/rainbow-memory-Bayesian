@@ -28,7 +28,7 @@ from losses import ClassificationLoss, ClassificationLossVI, LBClassificationLos
 import pdb
 
 def main():
-    pdb.set_trace()
+    #pdb.set_trace()
     args = config.base_parser()
 
     # Save file name
@@ -113,12 +113,11 @@ def main():
     )
 
     logger.info(f"[1] Select a CIL method ({args.mode})")
-    # this loss function here is not probabilistic either because it has the (reduction=mean)! for RM maybe it makes sense but for the Bayesian model it does not
-    criterion = nn.CrossEntropyLoss(reduction="mean") # what do we return here? 
-    ''' consider the case for the Bayesian model
-    if args.bayesian: # we can define our loss object here as well and call it criterion as well but then the output is different ...
-        prob_loss_dict = Prob_Classification_Loss
-    '''
+    if args.bayesian_model is True:
+        criterion = ClassificationLossVI()
+    else:
+        criterion = nn.CrossEntropyLoss(reduction="mean")
+  
     # Here model class gets initialized through the parent class of method which is finetune
     # I think here the optimizer instance and scheduler instances are initialized, alongside the 
     # mode. as this is outside of the loop, per task, we have the same model, optimizer and scheduler
@@ -163,7 +162,7 @@ def main():
         # Increment known class for current task iteration.
         # reinitalize optimizer and scheduler?
         # Add the trainable parameters for the optimizer
-        method.before_task(cur_train_datalist, cur_iter, args.init_model, args.init_opt)
+        method.before_task(cur_train_datalist, cur_iter, args.init_model, args.init_opt, args.bayesian_model)
 
         # The way to handle streamed samles
         logger.info(f"[2-3] Start to train under {args.stream_env}")
