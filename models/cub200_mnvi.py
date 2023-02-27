@@ -22,16 +22,25 @@ def keep_variance(x, min_variance):
 # why are initializing our bayesian layers with different values tha than 
 # the original pytorch implementation?
 def finitialize(modules, small=True):
+    
     logger.info("Initializing MSRA")
     for layer in modules:
-        print("Layer: ", layer)
-        if isinstance(layer, (varprop.Conv2dMNCL, varprop.LinearMNCL)):
+        if isinstance(layer, varprop.Conv2dMNCL):
+            #print("Conv2dMNCL instance detected")
+            nn.init.kaiming_normal_(layer.weight)
+            if small:
+                layer.weight.data.mul_(0.001)
+            if layer.bias is not None:
+                nn.init.constant_(layer.bias, 0)
+        elif isinstance(layer, varprop.LinearMNCL):
+            #print("LinearMNC instance detected")
             nn.init.kaiming_normal_(layer.weight)
             if small:
                 layer.weight.data.mul_(0.001)
             if layer.bias is not None:
                 nn.init.constant_(layer.bias, 0)
         elif isinstance(layer, varprop.BatchNorm2d):
+            #print("BatchNorm2 instance detected")
             nn.init.constant_(layer.weight, 1)
             nn.init.constant_(layer.bias, 0)
 
@@ -438,9 +447,19 @@ class ImageResNetMNCL(nn.Module):
         has_nan = torch.isnan(x_variance).any()
         if has_nan:
             print("The tensor contains at least one NaN value")
+
         # Flatten
         x_mean = torch.flatten(x_mean, 1)
         x_variance = torch.flatten(x_variance, 1)
+        # chack min and max output_mean
+        print('\n')
+        logger.info('--> check min and max after avg pool and flattening')
+        print(f"Flattened Minimum value of tensor out_mean", torch.min(x_mean))
+        print(f"Flattened Maximum value of tensor out_mean", torch.max(x_mean))
+        # chack min and max output_variance
+        print(f"Flattened Minimum value of tensor out_variance", torch.min(x_variance))
+        print(f"Flattened Maximum value of tensor out_variance", torch.max(x_variance))
+
 
         # FC layer
         out_mean, out_variance = self.fc.forward(x_mean, x_variance)
