@@ -123,7 +123,7 @@ class RM(Finetune):
 
     def update_model(self, x, y, criterion, optimizer):
         # chekc the label type, output of the bayesian model
-        pdb.set_trace()
+        
         optimizer.zero_grad()
 
         do_cutmix = self.cutmix and np.random.rand(1) < 0.5
@@ -132,10 +132,12 @@ class RM(Finetune):
             # take care of the output of the bayesian model and its probabilistic loss
             if self.bayesian:
                 logit_dict = self.model(x)
-                losses_dict = lam * criterion(logit_dict, labels_a) + (1 - lam) * criterion(
-                    logit_dict, labels_b)
-                loss = losses_dict['total_loss']
-                
+
+                loss = lam * criterion(logit_dict, labels_a)['total_loss'] + (1 - lam) * criterion(
+                    logit_dict, labels_b)['total_loss']
+                #loss = losses_dict['total_loss']
+                logit = criterion(logit_dict, labels_a)['prediction']
+                logit = logit.mean(dim=2)
             else:
                 logit = self.model(x)
                 loss = lam * criterion(logit, labels_a) + (1 - lam) * criterion(
@@ -148,6 +150,8 @@ class RM(Finetune):
                 losses_dict = criterion(logit_dict, y)
                 loss = losses_dict['total_loss']
                 logit = losses_dict['prediction'] # Shape: torch.Size([10, 10, 64]) --> (batch_size, num_classes, samples)
+                # change the shape of the logit to be (batch_size, num_classes)
+                logit = logit.mean(dim=2)
             else:
                 logit = self.model(x)
                 loss = criterion(logit, y)
@@ -198,6 +202,7 @@ class RM(Finetune):
             correct += c
             num_data += d
 
+        
         if train_loader is not None:
             n_batches = len(train_loader)
         else:
