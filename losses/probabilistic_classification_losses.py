@@ -30,7 +30,13 @@ class ClassificationLossVI(nn.Module):
         samples = 64
         
         prediction_mean = output_dict['prediction_mean'].unsqueeze(dim=2).expand(-1, -1, samples)
+        has_nan = torch.isnan(prediction_mean).any()
+        if has_nan:
+            print('prediction_mean tensor contains at least one nan value')
         prediction_variance = output_dict['prediction_variance'].unsqueeze(dim=2).expand(-1, -1, samples)
+        has_nan = torch.isnan(prediction_variance).any()
+        if has_nan:
+            print('prediction_variance tensor contains at least one nan value')
         #target = target_dict['target1']
         target= target_dict
         target_expanded = target.unsqueeze(dim=1).expand(-1, samples)
@@ -39,10 +45,15 @@ class ClassificationLossVI(nn.Module):
             losses = {}
             normals =  normal_dist.sample()
             prediction = prediction_mean + torch.sqrt(prediction_variance) * normals
+            has_nan = torch.isnan(prediction).any()
+            if has_nan:
+                print('prediction tensor contains at least one nan value')
             # add prediction which is out logit to the loss dict
             losses['prediction'] = prediction
             # this needs to be either computed on the cpu or reimplemented in cuda
             loss = F.cross_entropy(prediction, target_expanded, reduction='mean')
+            if torch.isnan(loss):
+                print('loss is nan')
             kl_div = output_dict['kl_div']
             losses['total_loss'] = loss + kl_div()
             with torch.no_grad():

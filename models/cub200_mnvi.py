@@ -273,7 +273,7 @@ class ImageResNetMNCL(nn.Module):
 
     def _forward_impl(self, x):
         # check for nan values in the inputs and layers
-        pdb.set_trace()
+       
         has_nan = torch.isnan(x).any()
         if has_nan:
             print("The tensor contains at least one NaN value")

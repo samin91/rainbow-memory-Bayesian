@@ -82,7 +82,7 @@ elif [ "$DATASET" == "cifar100" ]; then
 elif [ "$DATASET" == "cub200" ]; then
     TOTAL=50000 N_VAL=0 N_CLASS=170 TOPK=1  # what is TOTAL? how many data points do we have in the training set of the original dataset? 
     MODEL_NAME="resnet18"
-    N_EPOCH=1; BATCHSIZE=16; LR=0.001 OPT_NAME="sgd" SCHED_NAME="cos"  #N_EPOCH=256; BATCHSIZE=16; LR=0.05 OPT_NAME="sgd" SCHED_NAME="cos"
+    N_EPOCH=1; BATCHSIZE=10; LR=0.1 OPT_NAME="sgd" SCHED_NAME="cos"  #N_EPOCH=256; BATCHSIZE=16; LR=0.05 OPT_NAME="sgd" SCHED_NAME="cos"
     if [ "${MODE_LIST[0]}" == "joint" ]; then
         N_INIT_CLS=100 N_CLS_A_TASK=100 N_TASKS=1
     elif [[ "$EXP" == *"blurry"* ]]; then
@@ -107,7 +107,7 @@ else
     exit 1
 fi
 
-CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=2 python main.py --mode $MODE --mem_manage $MEM_MANAGE --exp_name $EXP \
+CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=0 python main.py --mode $MODE --mem_manage $MEM_MANAGE --exp_name $EXP \
 --dataset $DATASET \
 --stream_env $STREAM  $INIT_MODEL $INIT_OPT --topk $TOPK \
 --n_tasks $N_TASKS --n_cls_a_task $N_CLS_A_TASK --n_init_cls $N_INIT_CLS \
