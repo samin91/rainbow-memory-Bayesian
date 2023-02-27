@@ -26,21 +26,21 @@ def finitialize(modules, small=True):
     logger.info("Initializing MSRA")
     for layer in modules:
         if isinstance(layer, varprop.Conv2dMNCL):
-            #print("Conv2dMNCL instance detected")
+            #logger.info("Conv2dMNCL instance detected")
             nn.init.kaiming_normal_(layer.weight)
             if small:
                 layer.weight.data.mul_(0.001)
             if layer.bias is not None:
                 nn.init.constant_(layer.bias, 0)
         elif isinstance(layer, varprop.LinearMNCL):
-            #print("LinearMNC instance detected")
+            #logger.info("LinearMNC instance detected")
             nn.init.kaiming_normal_(layer.weight)
             if small:
                 layer.weight.data.mul_(0.001)
             if layer.bias is not None:
                 nn.init.constant_(layer.bias, 0)
         elif isinstance(layer, varprop.BatchNorm2d):
-            #print("BatchNorm2 instance detected")
+            #logger.info("BatchNorm2 instance detected")
             nn.init.constant_(layer.weight, 1)
             nn.init.constant_(layer.bias, 0)
 
@@ -287,14 +287,17 @@ class ImageResNetMNCL(nn.Module):
         # nan check
         has_nan = torch.isnan(x).any()
         if has_nan:
-            print("The tensor contains at least one NaN value")
+            logger.info("The tensor contains at least one NaN value")
+        '''
         # min and max check
         # check the minimum and maximum values of the tensor
-        print("Input Minimum value:", torch.min(x))
-        print("Input Maximum value:", torch.max(x))
+        logger.info("Input Minimum value:", torch.min(x))
+        logger.info("Input Maximum value:", torch.max(x))
 
         # check the range of the data type of the tensor
-        print("Input Data type range:", torch.finfo(x.dtype))
+        logger.info("Input Data type range:", torch.finfo(x.dtype))
+        '''
+
         x_variance = torch.zeros_like(x)
 
         # First conv layer
@@ -305,17 +308,18 @@ class ImageResNetMNCL(nn.Module):
                 has_nan=True
                 break
         if has_nan:
-            print("The tensor contains at least one NaN value")
+            logger.info("The tensor contains at least one NaN value")
+        '''
         # check min and max
-        print('\n')
+        logger.info('\n')
         logger.info('--> check min and max output_mean First conv layer')
         for i, tensor in enumerate(x):
-            print(f"conv1 Minimum value of tensor_{i}", torch.min(tensor))
-            print(f"conv1 Maximum value of tensor_{i}", torch.max(tensor))
+            logger.info(f"conv1 Minimum value of tensor_{i}", torch.min(tensor))
+            logger.info(f"conv1 Maximum value of tensor_{i}", torch.max(tensor))
 
             # check the range of the data type of the tensor
-            print(f"conv1 Data type range of tensor_{i}", torch.finfo(tensor.dtype))
-
+            logger.info(f"conv1 Data type range of tensor_{i}", torch.finfo(tensor.dtype))
+        '''
         # batch normalization
         x = self.bn1(*x)
         # check nan
@@ -324,18 +328,19 @@ class ImageResNetMNCL(nn.Module):
                 has_nan=True
                 break
         if has_nan:
-            print("The tensor contains at least one NaN value")
-        
+            logger.info("The tensor contains at least one NaN value")
+        '''
         # check min and max
-        print('\n')
+        logger.info('\n')
         logger.info('--> check min and max output_mean BN')      
         for i, tensor in enumerate(x):
-            print(f"BN Minimum value of tensor_{i}", torch.min(tensor))
-            print(f"BN Maximum value of tensor_{i}", torch.max(tensor))
+            logger.info(f"BN Minimum value of tensor_{i}", torch.min(tensor))
+            logger.info(f"BN Maximum value of tensor_{i}", torch.max(tensor))
 
             # check the range of the data type of the tensor
-            print(f"BN Data type range of tensor_{i}", torch.finfo(tensor.dtype))
-        # Relue
+            logger.info(f"BN Data type range of tensor_{i}", torch.finfo(tensor.dtype))
+        '''
+        # Relu
         # check nan
         x = self.relu(*x)
         for tensor in x:
@@ -343,17 +348,18 @@ class ImageResNetMNCL(nn.Module):
                 has_nan=True
                 break
         if has_nan:
-            print("The tensor contains at least one NaN value")
-        # check min and ma
-        print('\n')
+            logger.info("The tensor contains at least one NaN value")
+        '''
+        # check min and max
+        logger.info('\n')
         logger.info('--> check min and max output_mean ReLU')      
         for i, tensor in enumerate(x):
-            print(f"Relu Minimum value of tensor_{i}", torch.min(tensor))
-            print(f"Relu Maximum value of tensor_{i}", torch.max(tensor))
+            logger.info(f"Relu Minimum value of tensor_{i}", torch.min(tensor))
+            logger.info(f"Relu Maximum value of tensor_{i}", torch.max(tensor))
 
             # check the range of the data type of the tensor
-            print(f"Relu Data type range of tensor_{i}", torch.finfo(tensor.dtype))
-       
+            logger.info(f"Relu Data type range of tensor_{i}", torch.finfo(tensor.dtype))
+        '''
         # Remove max_pooling because the implementation of 
         # this layer is non-deterministic 
         #x = self.maxpool(*x)
@@ -366,18 +372,18 @@ class ImageResNetMNCL(nn.Module):
                 has_nan=True
                 break
         if has_nan:
-            print("The tensor contains at least one NaN value")
-
+            logger.info("The tensor contains at least one NaN value")
+        '''
         # check min and max
-        print('\n')
+        logger.info('\n')
         logger.info('--> check min and max output_mean Layer_1')      
         for i, tensor in enumerate(x):
-            print(f"Layer_1 Minimum value of tensor_{i}", torch.min(tensor))
-            print(f"Layer_1 Maximum value of tensor_{i}", torch.max(tensor))
+            logger.info(f"Layer_1 Minimum value of tensor_{i}", torch.min(tensor))
+            logger.info(f"Layer_1 Maximum value of tensor_{i}", torch.max(tensor))
 
             # check the range of the data type of the tensor
-            print(f"Layer_1 Data type range of tensor_{i}", torch.finfo(tensor.dtype))
-
+            logger.info(f"Layer_1 Data type range of tensor_{i}", torch.finfo(tensor.dtype))
+        '''
         # Layer_2
         x = self.layer2(*x)
           # check nan
@@ -386,18 +392,18 @@ class ImageResNetMNCL(nn.Module):
                 has_nan=True
                 break
         if has_nan:
-            print("The tensor contains at least one NaN value")
-
+            logger.info("The tensor contains at least one NaN value")
+        '''
         # check min and max 
-        print('\n')
+        logger.info('\n')
         logger.info('--> check min and max output_mean Layer_2')       
         for i, tensor in enumerate(x):
-            print(f"Layer_2 Minimum value of tensor_{i}", torch.min(tensor))
-            print(f"Layer_2 Maximum value of tensor_{i}", torch.max(tensor))
+            logger.info(f"Layer_2 Minimum value of tensor_{i}", torch.min(tensor))
+            logger.info(f"Layer_2 Maximum value of tensor_{i}", torch.max(tensor))
 
             # check the range of the data type of the tensor
-            print(f"Layer_2 Data type range of tensor_{i}", torch.finfo(tensor.dtype))
-
+            logger.info(f"Layer_2 Data type range of tensor_{i}", torch.finfo(tensor.dtype))
+        '''
         # Layer_3
         x = self.layer3(*x)
         # check nan
@@ -406,18 +412,18 @@ class ImageResNetMNCL(nn.Module):
                 has_nan=True
                 break
         if has_nan:
-            print("The tensor contains at least one NaN value")
-
+            logger.info("The tensor contains at least one NaN value")
+        '''
         # check min and max
-        print('\n')
+        logger.info('\n')
         logger.info('--> check min and max output_mean Layer_3')      
         for i, tensor in enumerate(x):
-            print(f"Layer_3 Minimum value of tensor_{i}", torch.min(tensor))
-            print(f"Layer_3 Maximum value of tensor_{i}", torch.max(tensor))
+            logger.info(f"Layer_3 Minimum value of tensor_{i}", torch.min(tensor))
+            logger.info(f"Layer_3 Maximum value of tensor_{i}", torch.max(tensor))
 
             # check the range of the data type of the tensor
-            print(f"Layer_3 Data type range of tensor_{i}", torch.finfo(tensor.dtype))
-
+            logger.info(f"Layer_3 Data type range of tensor_{i}", torch.finfo(tensor.dtype))
+        '''
         # Layer_4
         x = self.layer4(*x)
         # check nan
@@ -426,65 +432,65 @@ class ImageResNetMNCL(nn.Module):
                 has_nan=True
                 break
         if has_nan:
-            print("The tensor contains at least one NaN value")
-
+            logger.info("The tensor contains at least one NaN value")
+        '''
         # check min and max
-        print('\n')
+        logger.info('\n')
         logger.info('--> check min and max output_mean Layer_4')      
         for i, tensor in enumerate(x):
-            print(f"Layer_4 Minimum value of tensor_{i}", torch.min(tensor))
-            print(f"Layer_4 Maximum value of tensor_{i}", torch.max(tensor))
+            logger.info(f"Layer_4 Minimum value of tensor_{i}", torch.min(tensor))
+            logger.info(f"Layer_4 Maximum value of tensor_{i}", torch.max(tensor))
 
             # check the range of the data type of the tensor
-            print(f"Layer_4 Data type range of tensor_{i}", torch.finfo(tensor.dtype))
-        
+            logger.info(f"Layer_4 Data type range of tensor_{i}", torch.finfo(tensor.dtype))
+        '''
         # Average pooling
         x_mean, x_variance = self.avgpool(*x)
         # check nan
         has_nan = torch.isnan(x_mean).any()
         if has_nan:
-            print("The tensor contains at least one NaN value")
+            logger.info("The tensor contains at least one NaN value")
         has_nan = torch.isnan(x_variance).any()
         if has_nan:
-            print("The tensor contains at least one NaN value")
+            logger.info("The tensor contains at least one NaN value")
 
         # Flatten
         x_mean = torch.flatten(x_mean, 1)
         x_variance = torch.flatten(x_variance, 1)
+        '''
         # chack min and max output_mean
-        print('\n')
+        logger.info('\n')
         logger.info('--> check min and max after avg pool and flattening')
-        print(f"Flattened Minimum value of tensor out_mean", torch.min(x_mean))
-        print(f"Flattened Maximum value of tensor out_mean", torch.max(x_mean))
+        logger.info(f"Flattened Minimum value of tensor out_mean", torch.min(x_mean))
+        logger.info(f"Flattened Maximum value of tensor out_mean", torch.max(x_mean))
         # chack min and max output_variance
-        print(f"Flattened Minimum value of tensor out_variance", torch.min(x_variance))
-        print(f"Flattened Maximum value of tensor out_variance", torch.max(x_variance))
-
+        logger.info(f"Flattened Minimum value of tensor out_variance", torch.min(x_variance))
+        logger.info(f"Flattened Maximum value of tensor out_variance", torch.max(x_variance))
+        '''
 
         # FC layer
         out_mean, out_variance = self.fc.forward(x_mean, x_variance)
         # check nan
         has_nan = torch.isnan(out_mean).any()
         if has_nan:
-            print("The tensor contains at least one NaN value")
+            logger.info("The tensor contains at least one NaN value")
         has_nan = torch.isnan(out_variance).any()
         if has_nan:
-            print("The tensor contains at least one NaN value")
+            logger.info("The tensor contains at least one NaN value")
+        '''
         # chack min and max output_mean
-        print('\n')
+        logger.info('\n')
         logger.info('--> check min and max output_mean FC Layer')
-        print(f"FC Minimum value of tensor out_mean", torch.min(out_mean))
-        print(f"FC Maximum value of tensor out_mean", torch.max(out_mean))
+        logger.info(f"FC Minimum value of tensor out_mean", torch.min(out_mean))
+        logger.info(f"FC Maximum value of tensor out_mean", torch.max(out_mean))
         # chack min and max output_variance
-        print(f"FC Minimum value of tensor out_variance", torch.min(out_variance))
-        print(f"FC Maximum value of tensor out_variance", torch.max(out_variance))
+        logger.info(f"FC Minimum value of tensor out_variance", torch.min(out_variance))
+        logger.info(f"FC Maximum value of tensor out_variance", torch.max(out_variance))
 
         # check the range of the data type of the tensor
-        print(f"FC Data type range of tensor out_mean", torch.finfo(out_mean.dtype))
-        print(f"FC Data type range of tensor out_variance", torch.finfo(out_variance.dtype))
-
-
-        # out_mean, out_variance = self.fc3[self._active_task](x_mean, x_variance)
+        logger.info(f"FC Data type range of tensor out_mean", torch.finfo(out_mean.dtype))
+        logger.info(f"FC Data type range of tensor out_variance", torch.finfo(out_variance.dtype))
+        '''
         return {'prediction_mean':out_mean, 'prediction_variance':out_variance, 'kl_div':self.kl_div}
 
     def forward_sampling(self, inputs):
