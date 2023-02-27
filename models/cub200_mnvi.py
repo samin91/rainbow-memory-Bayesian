@@ -272,24 +272,92 @@ class ImageResNetMNCL(nn.Module):
 
 
     def _forward_impl(self, x):
+        # check for nan values in the inputs and layers
         pdb.set_trace()
+        has_nan = torch.isnan(x).any()
+        if has_nan:
+            print("The tensor contains at least one NaN value")
         x_variance = torch.zeros_like(x)
+
         x = self.conv1(x, x_variance)
+        for tensor in x:
+            if torch.isnan(tensor).any():
+                has_nan=True
+                break
+        if has_nan:
+            print("The tensor contains at least one NaN value")
+        
+    
         x = self.bn1(*x)
+        for tensor in x:
+            if torch.isnan(tensor).any():
+                has_nan=True
+                break
+        if has_nan:
+            print("The tensor contains at least one NaN value")
+        
+
         x = self.relu(*x)
+        for tensor in x:
+            if torch.isnan(tensor).any():
+                has_nan=True
+                break
+        if has_nan:
+            print("The tensor contains at least one NaN value")
+
+       
         # Remove max_pooling because the implementation of 
         # this layer is non-deterministic 
         #x = self.maxpool(*x)
         
         x = self.layer1(*x)
+        for tensor in x:
+            if torch.isnan(tensor).any():
+                has_nan=True
+                break
+        if has_nan:
+            print("The tensor contains at least one NaN value")
+
         x = self.layer2(*x)
+        for tensor in x:
+            if torch.isnan(tensor).any():
+                has_nan=True
+                break
+        if has_nan:
+            print("The tensor contains at least one NaN value")
+
         x = self.layer3(*x)
+        for tensor in x:
+            if torch.isnan(tensor).any():
+                has_nan=True
+                break
+        if has_nan:
+            print("The tensor contains at least one NaN value")
+
         x = self.layer4(*x)
+        for tensor in x:
+            if torch.isnan(tensor).any():
+                has_nan=True
+                break
+        if has_nan:
+            print("The tensor contains at least one NaN value")
 
         x_mean, x_variance = self.avgpool(*x)
+        has_nan = torch.isnan(x_mean).any()
+        if has_nan:
+            print("The tensor contains at least one NaN value")
+        has_nan = torch.isnan(x_variance).any()
+        if has_nan:
+            print("The tensor contains at least one NaN value")
         x_mean = torch.flatten(x_mean, 1)
         x_variance = torch.flatten(x_variance, 1)
         out_mean, out_variance = self.fc.forward(x_mean, x_variance)
+        has_nan = torch.isnan(out_mean).any()
+        if has_nan:
+            print("The tensor contains at least one NaN value")
+        has_nan = torch.isnan(out_variance).any()
+        if has_nan:
+            print("The tensor contains at least one NaN value")
         # out_mean, out_variance = self.fc3[self._active_task](x_mean, x_variance)
         return {'prediction_mean':out_mean, 'prediction_variance':out_variance, 'kl_div':self.kl_div}
 
@@ -312,7 +380,6 @@ class ImageResNetMNCL(nn.Module):
         return out
 
     def forward(self, x):
-        pdb.set_trace()
         return self._forward_impl(x)
     
     # Extra functions that only apply to the Bayesian model in CL scenario

@@ -75,7 +75,7 @@ class LinearMN(nn.Module):
 class LinearMNCL(nn.Module):
     def __init__(self, in_features, out_features, prior_precision=1e0, prior_mean=0.0, mnv_init=-3.0, bias=True, eps=1e-10):
         super(LinearMNCL, self).__init__()
-        pdb.set_trace()
+        
         self.in_features = in_features
         self.out_features = out_features
         self.eps = eps
@@ -96,7 +96,7 @@ class LinearMNCL(nn.Module):
             self.register_parameter('bias', None)
 
     def forward(self, inputs_mean, inputs_variance):
-        pdb.set_trace()
+       
         #if self._keep_variance_fn is not None:
         #    inputs_variance = self._keep_variance_fn(inputs_variance)
         outputs_mean = F.linear(inputs_mean, self.weight, self.bias)

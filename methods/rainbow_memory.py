@@ -144,8 +144,10 @@ class RM(Finetune):
         else:
             if self.bayesian:
                 logit_dict = self.model(x)
+                # criterion is the probabilistic loss class
                 losses_dict = criterion(logit_dict, y)
                 loss = losses_dict['total_loss']
+                logit = losses_dict['prediction']
             else:
                 logit = self.model(x)
                 loss = criterion(logit, y)
@@ -156,8 +158,10 @@ class RM(Finetune):
         loss.backward()
         ''' ToDo: is it necessary to clip the gradient? it was done in mnvi code
         Maybe they didn't need it but I'm not sure. For the Bayesian case, it is probably needed.
-        torch.nn.utils.clip_grad_norm_(self._model_and_loss._model.parameters(), 0.1, norm_type='inf')
         '''
+        if self.bayesian:
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 0.1, norm_type='inf')
+        
         optimizer.step()
         return loss.item(), torch.sum(preds == y.unsqueeze(1)).item(), y.size(0)
 

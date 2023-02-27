@@ -42,7 +42,6 @@ def select_optimizer(opt_name, lr, model, sched_name="cos"):
 
 
 def select_model(model_name, dataset, num_classes=None, kwargs=None):
-    pdb.set_trace()
     # send the kwarg* to select model, then if bayesian is true, create a new opt
     # for the bayesian model which contains the prior args
     '''

@@ -31,13 +31,16 @@ class ClassificationLossVI(nn.Module):
         
         prediction_mean = output_dict['prediction_mean'].unsqueeze(dim=2).expand(-1, -1, samples)
         prediction_variance = output_dict['prediction_variance'].unsqueeze(dim=2).expand(-1, -1, samples)
-        target = target_dict['target1']
+        #target = target_dict['target1']
+        target= target_dict
         target_expanded = target.unsqueeze(dim=1).expand(-1, samples)
         normal_dist = torch.distributions.normal.Normal(torch.zeros_like(prediction_mean), torch.ones_like(prediction_mean))
         if self.training:
             losses = {}
             normals =  normal_dist.sample()
             prediction = prediction_mean + torch.sqrt(prediction_variance) * normals
+            # add prediction which is out logit to the loss dict
+            losses['prediction'] = prediction
             # this needs to be either computed on the cpu or reimplemented in cuda
             loss = F.cross_entropy(prediction, target_expanded, reduction='mean')
             kl_div = output_dict['kl_div']
@@ -52,6 +55,8 @@ class ClassificationLossVI(nn.Module):
             with torch.no_grad():
                 normals =  normal_dist.sample()
                 prediction = prediction_mean + torch.sqrt(prediction_variance) * normals
+                # add prediction to the loss dictionary when we are evaluating 
+                losses['prediction'] = prediction
                 p = F.softmax(prediction, dim=1).mean(dim=2)
                 losses = {}
                 kl_div = output_dict['kl_div']
