@@ -203,6 +203,14 @@ def base_parser():
         help="KL divergence weight for Bayesian model",
     )
 
+    parser.add_argument(
+        "--prior_conv_function",
+        type=str,
+        default="none",
+        choices=["sqrt", "exp", "mul2", "mul3", "mul4", "mul8", 'log', 'pow2', 'pow3', 'div', 'none'],
+        help="Prior conversion function for Bayesian model",
+    )
+
           
 
    
