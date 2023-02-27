@@ -147,7 +147,7 @@ class RM(Finetune):
                 # criterion is the probabilistic loss class
                 losses_dict = criterion(logit_dict, y)
                 loss = losses_dict['total_loss']
-                logit = losses_dict['prediction']
+                logit = losses_dict['prediction'] # Shape: torch.Size([10, 10, 64]) --> (batch_size, num_classes, samples)
             else:
                 logit = self.model(x)
                 loss = criterion(logit, y)
