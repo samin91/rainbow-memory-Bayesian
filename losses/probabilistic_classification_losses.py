@@ -9,7 +9,7 @@ import pdb
 
 
 def _accuracy(output, target, topk=(1,)):
-    pdb.set_trace()
+    #pdb.set_trace()
     maxk = max(topk) # maxk = 3
     batch_size = target.size(0)
     _, pred = output.topk(maxk, 1, True, True) # pred: torch.Size([10, 3])
@@ -18,6 +18,7 @@ def _accuracy(output, target, topk=(1,)):
     res = []
     for k in topk:
         correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True) # number of correct prediction for top k
+        #print(f'correct_{k}: {correct_k}')
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
 
@@ -28,7 +29,7 @@ class ClassificationLossVI(nn.Module):
         self._topk = tuple(range(1, topk+1))
 
     def forward(self, output_dict, target_dict):
-        pdb.set_trace()
+        #pdb.set_trace()
         samples = 64
         
         prediction_mean = output_dict['prediction_mean'].unsqueeze(dim=2).expand(-1, -1, samples)
