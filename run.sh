@@ -3,7 +3,7 @@
 # CIL CONFIG
 MODE="rm" # joint, gdumb, icarl, rm, ewc, rwalk, bic   # here I can add the Bayesian method? althoug the Bayesian method is more of a architecture than a method! the loss maybe is! 
 # "default": If you want to use the default memory management method.
-MEM_MANAGE="uncertainty" # default, random, reservoir, uncertainty, prototype.
+MEM_MANAGE="random" # default, random, reservoir, uncertainty, prototype.
 RND_SEED=3
 DATASET="cub200" # mnist, cifar10, cifar100, imagenet, cub200
 STREAM="offline" # offline, online
@@ -36,6 +36,12 @@ PRIOR_PRECISION=1e0
 PRIOR_MEAN=0.0
 KL_DIV_WEIGHT=5e-7
 PRIOR_CONVERSION_FUNCTION="none" # {"sqrt", exp, mul2, mul3, mul4, mul8, log, pow2, pow3, div, none}
+
+# Checkpoint
+CHECKPOINT="./cub_split/checkpoint_imagenet_mnvi.ckpt" # path to the checkpoint?
+CHECKPOINT_INCLUDE="[]"
+CHECKPOINT_EXCLUDE="[_model.module.resnet.fc.weight,_model.module.resnet.fc.mult_noise_variance,_model.module.resnet.fc.bias,_model.module.resnet.fc.bias_variance]"
+CHECKPOINT_MODE="resume_from_latest" # "resume_from_latest", "resume_from_best"
 
 if [ -d "tensorboard" ]; then
     rm -rf tensorboard
@@ -83,7 +89,7 @@ elif [ "$DATASET" == "cifar100" ]; then
 elif [ "$DATASET" == "cub200" ]; then
     TOTAL=50000 N_VAL=0 N_CLASS=170 TOPK=1  # what is TOTAL? how many data points do we have in the training set of the original dataset? 
     MODEL_NAME="resnet18"
-    N_EPOCH=1; BATCHSIZE=10; LR=0.0001 OPT_NAME="sgd" SCHED_NAME="none"  #N_EPOCH=256; BATCHSIZE=16; LR=0.05 OPT_NAME="sgd" SCHED_NAME="cos"
+    N_EPOCH=1; BATCHSIZE=10; LR=0.1 OPT_NAME="sgd" SCHED_NAME="none"  #N_EPOCH=256; BATCHSIZE=16; LR=0.05 OPT_NAME="sgd" SCHED_NAME="cos"
     if [ "${MODE_LIST[0]}" == "joint" ]; then
         N_INIT_CLS=100 N_CLS_A_TASK=100 N_TASKS=1
     elif [[ "$EXP" == *"blurry"* ]]; then
@@ -120,4 +126,5 @@ CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=0 python main.py --mode $MODE --mem_
 --feature_size $FEAT_SIZE $distilling --joint_acc $JOINT_ACC \
 --expanding_memory $EXP_MEM --coreset_size $CORSET_SIZE --bayesian_model $BAYESIAN --min_variance $MEAN_VARIANCE \
 --mnv_init $MNV_INIT --prior_precision $PRIOR_PRECISION --prior_mean $PRIOR_MEAN --model_kl_div_weight $KL_DIV_WEIGHT \
---prior_conv_function $PRIOR_CONVERSION_FUNCTION
+--prior_conv_function $PRIOR_CONVERSION_FUNCTION --checkpoint_path $CHECKPOINT --checkpoint_include_params $CHECKPOINT_INCLUDE \
+ --checkpoint_exclude_params $CHECKPOINT_EXCLUDE --checkpoint_mode $CHECKPOINT_MODE
