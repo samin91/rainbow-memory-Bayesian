@@ -9,6 +9,7 @@ import pdb
 
 
 def _accuracy(output, target, topk=(1,)):
+    pdb.set_trace()
     maxk = max(topk)
     batch_size = target.size(0)
     _, pred = output.topk(maxk, 1, True, True)
@@ -27,24 +28,33 @@ class ClassificationLossVI(nn.Module):
         self._topk = tuple(range(1, topk+1))
 
     def forward(self, output_dict, target_dict):
+        pdb.set_trace()
         samples = 64
         
         prediction_mean = output_dict['prediction_mean'].unsqueeze(dim=2).expand(-1, -1, samples)
+        # shape:torch.Size([10, 10, 64]) (batch_size, num_classes, samples)
         has_nan = torch.isnan(prediction_mean).any()
         if has_nan:
             print('prediction_mean tensor contains at least one nan value')
         prediction_variance = output_dict['prediction_variance'].unsqueeze(dim=2).expand(-1, -1, samples)
+        # shape:torch.Size([10, 10, 64]) --> (batch_size, num_classes, samples)
         has_nan = torch.isnan(prediction_variance).any()
         if has_nan:
             print('prediction_variance tensor contains at least one nan value')
         #target = target_dict['target1']
         target= target_dict
+        # shape: torch.Size([10]) --> (batch_size)
         target_expanded = target.unsqueeze(dim=1).expand(-1, samples)
-        normal_dist = torch.distributions.normal.Normal(torch.zeros_like(prediction_mean), torch.ones_like(prediction_mean))
+        # shape: torch.Size([10, 64]) --> (batch_size, samples)
+        normal_dist = torch.distributions.normal.Normal(torch.zeros_like(prediction_mean), 
+                                                        torch.ones_like(prediction_mean))
+        
         if self.training:
             losses = {}
             normals =  normal_dist.sample()
+            # shape: torch.Size([10, 10, 64]) --> (batch_size, num_classes, samples)
             prediction = prediction_mean + torch.sqrt(prediction_variance) * normals
+            # shape: torch.Size([10, 10, 64]) --> (batch_size, num_classes, samples)
             has_nan = torch.isnan(prediction).any()
             if has_nan:
                 print('prediction tensor contains at least one nan value')
@@ -58,6 +68,7 @@ class ClassificationLossVI(nn.Module):
             losses['total_loss'] = loss + kl_div()
             with torch.no_grad():
                 p = F.softmax(prediction, dim=1).mean(dim=2)
+                # shape: torch.Size([10, 10]) --> (batch_size, num_classes)
                 losses['xe'] =  F.cross_entropy(prediction, target_expanded, reduction='mean')
                 acc_k = _accuracy(p, target, topk=self._topk)
                 for acc, k in zip(acc_k, self._topk):
