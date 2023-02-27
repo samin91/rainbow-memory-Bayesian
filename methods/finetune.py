@@ -23,6 +23,7 @@ from utils.data_loader import ImageDataset
 from utils.data_loader import cutmix_data
 from utils.train_utils import select_model, select_optimizer
 from models import varprop
+from models import cub200_mnvi
 import pdb
 
 logger = logging.getLogger()
@@ -131,19 +132,20 @@ class Finetune:
             logger.info("Reset model parameters")
             self.model = select_model(self.model_name, self.dataset, new_out_features, self.kwargs)
         else:
+            #pdb.set_trace()
             if bayesian is True:
                 # what happens to the pre-trained weights?
                 self.model.fc = varprop.LinearMNCL(in_features, new_out_features)
-                '''
+                cub200_mnvi.finitialize([self.model.fc], small=True)
                 # does this weight initialization take place automatically? - since the model is defined once before the task training
                 #, I do not think so. I prefer to initialize the classifier weights again
-                for layer in self.model.modules():
-                    if isinstance(layer, varprop.LinearMNCL):
-                        nn.init.kaiming_normal_(layer.weight)
-                        if small:
-                            layer.weight.data.mul_(0.001)
-                        if layer.bias is not None:
-                            nn.init.constant_(layer.bias, 0)
+                ''' Another way to intialize fc for each task
+                small = True
+                nn.init.kaiming_normal_(salf.model.fc.weight)
+                if small:
+                    layer.weight.data.mul_(0.001)
+                if self.model.fc.bias is not None:
+                    nn.init.constant_(self.model.fc.bias, 0)
                 '''
             else:
                 self.model.fc = nn.Linear(in_features, new_out_features)
