@@ -4,6 +4,8 @@ Copyright 2021-present NAVER Corp.
 GPLv3
 """
 import argparse
+from utils import json
+from utils import strings
 
 
 def base_parser():
@@ -211,7 +213,36 @@ def base_parser():
         help="Prior conversion function for Bayesian model",
     )
 
-          
+    # checkpoint argments
+
+    parser.add_argument(
+        "--checkpoint_path",
+        type=strings.as_string_or_none,
+        default="none",
+        help="Path to the checkpoint",
+    )
+
+    parser.add_argument(
+        "--checkpoint_include_params", 
+        type=strings.as_stringlist_or_none, 
+        default="[*]",
+        help="include the following parameters to the checkpoint",
+    )
+    
+    parser.add_argument(
+        "--checkpoint_exclude_params", 
+        type=strings.as_stringlist_or_none, 
+        default="[]",
+        help="exclude the following parameters to the checkpoint",
+    ) 
+
+    parser.add_argument(
+        "--checkpoint_mode", 
+        type=str, 
+        default="resume_from_latest",
+        choices=["resume_from_latest", "resume_from_best"]
+    )
+
 
    
     # Debug
