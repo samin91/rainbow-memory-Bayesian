@@ -10,14 +10,14 @@ import pdb
 
 def _accuracy(output, target, topk=(1,)):
     pdb.set_trace()
-    maxk = max(topk)
+    maxk = max(topk) # maxk = 3
     batch_size = target.size(0)
-    _, pred = output.topk(maxk, 1, True, True)
-    pred = pred.t()
-    correct = pred.eq(target.view(1, -1))
+    _, pred = output.topk(maxk, 1, True, True) # pred: torch.Size([10, 3])
+    pred = pred.t() # give the indexes of the top 3 predictions
+    correct = pred.eq(target.view(1, -1)) # view --> torch.Size([1, 10]) , correct.shape: torch.Size([3, 10])
     res = []
     for k in topk:
-        correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
+        correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True) # number of correct prediction for top k
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
 
