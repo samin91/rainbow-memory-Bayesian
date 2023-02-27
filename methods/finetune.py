@@ -381,6 +381,7 @@ class Finetune:
         return eval_dict
 
     def evaluation(self, test_loader, criterion):
+        
         total_correct, total_num_data, total_loss = 0.0, 0.0, 0.0
         correct_l = torch.zeros(self.n_classes)
         num_data_l = torch.zeros(self.n_classes)
@@ -393,9 +394,17 @@ class Finetune:
                 y = data["label"]
                 x = x.to(self.device)
                 y = y.to(self.device)
-                logit = self.model(x)
+                if self.bayesian:
+                    logit_dict = self.model(x)
+                    losses_dict = criterion(logit_dict, y)
+                    loss = losses_dict['total_loss']
+                    logit = losses_dict['prediction'] # Shape: torch.Size([10, 10, 64]) --> (batch_size, num_classes, samples)
+                    # change the shape of the logit to be (batch_size, num_classes)
+                    logit = logit.mean(dim=2)
+                else:
+                    logit = self.model(x)
+                    loss = criterion(logit, y)
 
-                loss = criterion(logit, y)
                 pred = torch.argmax(logit, dim=-1)
                 _, preds = logit.topk(self.topk, 1, True, True)
 
@@ -684,3 +693,12 @@ class Finetune:
             logger.warning(f"Duplicated samples in memory: {num_dups}")
 
         return ret
+
+    def update_prior(self, prior_conv_func):
+        """Update the prior of the bayesian model: posterior --> prior.
+
+        Args:
+            prior_conv_func (function): function to convert the posterior width.
+        """
+        self.model.save_prior_and_weights(prior_conv_func)
+        self.model.update_prior_and_weights_from_saved()
