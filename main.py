@@ -73,14 +73,10 @@ def main():
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     # add more seeding? maybe it will be necessary for the bayesian model
-    # torch.cuda.manual_seed_all(seed)
-    # torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(args.rnd_seed)
+    torch.cuda.manual_seed(args.rnd_seed)
     np.random.seed(args.rnd_seed)
     random.seed(args.rnd_seed)
-
-    # Running from checkpoint
-    ''' ToDo: add the checkpoint loading: get inspired by MNVI repo
-    '''
 
     # Transform Definition
     # here I need to add information about CUB_200 as well
@@ -127,6 +123,14 @@ def main():
     method = select_method(
         args, criterion, device, train_transform, test_transform, n_classes
     )
+
+        # Running from checkpoint
+    ''' Add the checkpoint loading (from MNVI)
+    '''
+    if args.checkpoint_path is not None and args.bayesian_model is True:
+        method.checkpoint_saver_loader()
+
+
 
     logger.info(f"[2] Incrementally training {args.n_tasks} tasks")
     task_records = defaultdict(list)
@@ -210,8 +214,9 @@ def main():
         method.after_task(cur_iter)
         if args.bayesian_model is True:
             logger.info("[2-4] Update the prior for the current task: posterior -> prior")
-            logger.info(f"Prior conversion function: {args.prior_conv_func_str}")
-            prior_conv_func = configure_prior_conversion_function(args.prior_conv_func_str)
+            #prior_conversion = args.prior_conv_func
+            logger.info(f"Prior conversion function: {args.prior_conv_function}")
+            prior_conv_func = configure_prior_conversion_function(args.prior_conv_function)
             method.update_prior(prior_conv_func)
 
         task_records["task_acc"].append(task_acc)
