@@ -22,6 +22,7 @@ from utils.augment import Cutout, Invert, Solarize, select_autoaugment
 from utils.data_loader import ImageDataset
 from utils.data_loader import cutmix_data
 from utils.train_utils import select_model, select_optimizer
+from utils.checkpoint_saver import CheckpointSaver
 from models import varprop
 from models import cub200_mnvi
 import pdb
@@ -99,7 +100,7 @@ class Finetune:
 
         self.uncert_metric = kwargs["uncert_metric"]
         # self.cub200_mnvi = kwargs["cub200_mnview"]
-        self.kwargs = kwargs
+        #-------------------------------------------
 
     def set_current_dataset(self, train_datalist, test_datalist):
         random.shuffle(train_datalist)
@@ -702,3 +703,45 @@ class Finetune:
         """
         self.model.save_prior_and_weights(prior_conv_func)
         self.model.update_prior_and_weights_from_saved()
+
+    def checkpoint_saver_loader(self, ):
+        """Manage the checkpoint of the model."""
+        pdb.set_trace()
+        checkpoint_saver = CheckpointSaver()
+        checkpoint_stats = None
+
+        if self.kwargs["checkpoint_path"] is None:
+            logger.info("No checkpoint given.")
+            logger.info("Starting from scratch with random initialization.")
+
+        elif os.path.isfile(self.kwargs['checkpoint_path']):
+            checkpoint_stats, filename = checkpoint_saver.restore(
+                filename=self.kwargs['checkpoint_path'],
+                model=self.model,
+                include_params=self.kwargs['checkpoint_include_params'],
+                exclude_params=self.kwargs['checkpoint_exclude_params'])
+
+        elif os.path.isdir(self.kwargs['checkpoint_path']):
+            if self.kwargs.checkpoint_mode in ["resume_from_best"]:
+                logger.info("Loading best checkpoint in %s" % self.kwargs['checkpoint_path'])
+                checkpoint_stats, filename = checkpoint_saver.restore_best(
+                    directory=self.kwargs['checkpoint_path'],
+                    model=self.model,
+                    include_params=self.kwargs['checkpoint_include_params'],
+                    exclude_params=self.kwargs['checkpoint_exclude_params'])
+
+            elif self.kwargs.checkpoint_mode in ["resume_from_latest"]:
+                logger.info("Loading latest checkpoint in %s" % self.kwargs['checkpoint_path'])
+                checkpoint_stats, filename = checkpoint_saver.restore_latest(
+                    directory=self.kwargs['checkpoint_path'],
+                    model=self.model,
+                    include_params=self.kwargs['checkpoint_include_params'],
+                    exclude_params=self.kwargs['checkpoint_exclude_params'])
+            else:
+                #logger.info("Unknown checkpoint_restore '%s' given!" % self.kwargs['checkpoint_restore'])
+                quit()
+        else:
+            logger.info("Could not find checkpoint file or directory '%s'" % self.kwargs['checkpoint_path'])
+            quit()
+
+        return checkpoint_saver, checkpoint_stats, filename
