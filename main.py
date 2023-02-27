@@ -22,6 +22,7 @@ from utils.augment import Cutout, select_autoaugment
 from utils.data_loader import get_test_datalist, get_statistics
 from utils.data_loader import get_train_datalist
 from utils.method_manager import select_method
+from utils.bayes_utils import configure_prior_conversion_function
 
 # add the bayesian losses
 from losses import ClassificationLoss, ClassificationLossVI, LBClassificationLossVI
@@ -130,8 +131,7 @@ def main():
     logger.info(f"[2] Incrementally training {args.n_tasks} tasks")
     task_records = defaultdict(list)
 
-    '''ToDo: load prior conversion functions for the Bayesian model
-    '''
+    
     # Main Loop - cur_iter is not the best name for the current task
     for cur_iter in range(args.n_tasks):
         if args.mode == "joint" and cur_iter > 0:
@@ -206,7 +206,13 @@ def main():
             method.after_task(cur_iter)
 
         logger.info("[2-4] Update the information for the current task")
+        # should we update the prior here?
         method.after_task(cur_iter)
+        if args.bayesian_model is True:
+            logger.info("[2-4] Update the prior for the current task: posterior -> prior")
+            logger.info(f"Prior conversion function: {args.prior_conv_func_str}")
+            prior_conv_func = configure_prior_conversion_function(args.prior_conv_func_str)
+            method.update_prior(prior_conv_func)
 
         task_records["task_acc"].append(task_acc)
         # task_records['cls_acc'][k][j] = break down j-class accuracy from 'task_acc'
