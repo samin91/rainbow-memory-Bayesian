@@ -33,6 +33,9 @@ def select_optimizer(opt_name, lr, model, sched_name="cos"):
         scheduler = optim.lr_scheduler.MultiStepLR(
             opt, milestones=[30, 60, 80, 90], gamma=0.1
         )
+    elif sched_name == "none":
+        scheduler = None
+        
     else:
         raise NotImplementedError(
             "Please select the sched_name [cos, anneal, multistep]"
