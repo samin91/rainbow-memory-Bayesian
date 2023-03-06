@@ -8,7 +8,7 @@ from methods.finetune import Finetune
 from utils.train_utils import select_model, select_optimizer
 
 logger = logging.getLogger()
-writer = SummaryWriter(f"tensorboard/run_{1}")
+writer = SummaryWriter(f"tensorboard/run_{2}")
 
 
 class GDumb(Finetune):

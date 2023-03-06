@@ -64,7 +64,7 @@ class CheckpointSaver:
                 raise KeyError('missing keys in state_dict: "{}"'.format(missing))
 
     def restore(self, filename, model, include_params="*", exclude_params=()):
-        #pdb.set_trace()
+        
         # -----------------------------------------------------------------------------------------
         # Make sure file exists
         # -----------------------------------------------------------------------------------------

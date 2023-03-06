@@ -21,7 +21,7 @@ def keep_variance(x, min_variance):
     return x.clamp(min=min_variance)
 # why are initializing our bayesian layers with different values tha than 
 # the original pytorch implementation?
-def finitialize(modules, small=True):
+def finitialize(modules, small=False):
     
     logger.info("Initializing MSRA")
     for layer in modules:

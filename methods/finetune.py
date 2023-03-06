@@ -29,7 +29,7 @@ import pdb
 
 logger = logging.getLogger()
 # log = f"tensorboard/Run_{}" ???
-writer = SummaryWriter(f"tensorboard/run_{1}")
+writer = SummaryWriter(f"tensorboard/run_{2}")
 
 
 class ICaRLNet(nn.Module):
@@ -137,7 +137,7 @@ class Finetune:
             if bayesian is True:
                 # what happens to the pre-trained weights?
                 self.model.fc = varprop.LinearMNCL(in_features, new_out_features)
-                cub200_mnvi.finitialize([self.model.fc], small=True)
+                cub200_mnvi.finitialize([self.model.fc], small=False)
                 # does this weight initialization take place automatically? - since the model is defined once before the task training
                 #, I do not think so. I prefer to initialize the classifier weights again
                 ''' Another way to intialize fc for each task
@@ -705,6 +705,7 @@ class Finetune:
         self.model.update_prior_and_weights_from_saved()
 
     def checkpoint_saver_loader(self, ):
+        #pdb.set_trace()
         """Manage the checkpoint of the model."""
         #pdb.set_trace()
         checkpoint_saver = CheckpointSaver()

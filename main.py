@@ -29,7 +29,7 @@ from losses import ClassificationLoss, ClassificationLossVI, LBClassificationLos
 import pdb
 
 def main():
-    #pdb.set_trace()
+    pdb.set_trace()
     args = config.base_parser()
 
     # Save file name
@@ -51,7 +51,7 @@ def main():
 
     # Put every run to a different folder
     # log = f"tensorboard/Run_{}" ???
-    writer = SummaryWriter(f"tensorboard/run_{1}")
+    writer = SummaryWriter(f"tensorboard/run_{2}")
 
     # add an argument the device args.device="cuda:0" or "cpu"
     if torch.cuda.is_available():
@@ -127,6 +127,7 @@ def main():
         # Running from checkpoint
     ''' Add the checkpoint loading (from MNVI)
     '''
+    
     if args.checkpoint_path is not None and args.bayesian_model is True:
         method.checkpoint_saver_loader()
 
