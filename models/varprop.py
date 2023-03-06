@@ -1185,8 +1185,24 @@ class MaxPool2d(nn.Module):
         outputs_mean, indices = self.maxpool(inputs_mean)
         outputs_variance = self._retrieve_elements_from_indices(inputs_variance, indices)
         return outputs_mean, outputs_variance
+    
+# add avgpool2d
+class AvgPool2d(nn.Module):
+    def __init__(self, kernel_size=2, stride=2, padding=0, keep_variance_fn=None):
+        super(AvgPool2d, self).__init__()
+        
+        self.avgpool = nn.AvgPool2d(kernel_size, stride)
+        self._padding = padding
 
-
+    def forward(self, inputs_mean, inputs_variance):
+        #torch.Size([10, 64, 112, 112])
+        
+        inputs_mean = F.pad(inputs_mean, (self._padding, self._padding)) #inputs: torch.Size([10, 64, 112, 114])
+        inputs_variance = F.pad(inputs_variance, (self._padding, self._padding))
+        outputs_mean = self.avgpool(inputs_mean) # torch.Size([10, 64, 55, 56])
+        outputs_variance = self.avgpool(inputs_variance)
+        return outputs_mean, outputs_variance
+    
 class AdaptiveAvgPool2d(nn.Module):
     def __init__(self):
         super(AdaptiveAvgPool2d, self).__init__()

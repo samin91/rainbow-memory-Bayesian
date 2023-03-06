@@ -10,7 +10,7 @@ from collections import defaultdict
 
 import numpy as np
 import torch
-#torch.use_deterministic_algorithms(True)
+#torch.use_deterministic_algorithms(True, warn_only=True)
 #torch.autograd.set_detect_anomaly(True)
 from randaugment import RandAugment
 from torch import nn
@@ -38,9 +38,9 @@ def main():
         tr_names += "_" + trans
     save_path = f"{args.dataset}/{args.mode}_{args.mem_manage}_{args.stream_env}_msz{args.memory_size}_rnd{args.rnd_seed}{tr_names}"
 
+    # Logger
     logging.config.fileConfig("./configuration/logging.conf")
     logger = logging.getLogger()
-
     os.makedirs(f"logs/{args.dataset}", exist_ok=True)
     fileHandler = logging.FileHandler("logs/{}.log".format(save_path), mode="w")
     formatter = logging.Formatter(
@@ -49,10 +49,10 @@ def main():
     fileHandler.setFormatter(formatter)
     logger.addHandler(fileHandler)
 
-    # Put every run to a different folder
-    # log = f"tensorboard/Run_{}" ???
+    # Tensorboard
     writer = SummaryWriter(f"tensorboard/run_{2}")
 
+    # Device
     # add an argument the device args.device="cuda:0" or "cpu"
     if torch.cuda.is_available():
         device = torch.device("cuda")
@@ -79,7 +79,7 @@ def main():
     random.seed(args.rnd_seed)
 
     # Transform Definition
-    # here I need to add information about CUB_200 as well
+    # here I need to add information about CUB_200 as well: For normalization of CUB_200 I use the information of ImageNet
     mean, std, n_classes, inp_size, _ = get_statistics(dataset=args.dataset)
     train_transform = []
     if "cutout" in args.transforms:
@@ -108,29 +108,25 @@ def main():
             transforms.Normalize(mean, std),
         ]
     )
-
-    logger.info(f"[1] Select a CIL method ({args.mode})")
+    # Loss Function
     if args.bayesian_model is True:
+        logger.info(f"[1] Training a Bayesian model)")
         criterion = ClassificationLossVI()
     else:
         criterion = nn.CrossEntropyLoss(reduction="mean")
-  
-    # Here model class gets initialized through the parent class of method which is finetune
-    # I think here the optimizer instance and scheduler instances are initialized, alongside the 
-    # mode. as this is outside of the loop, per task, we have the same model, optimizer and scheduler
-    # this is different from the way it was implemented for the Bayesian model
-   
+    
+
+    # METHOD SELECTION
     method = select_method(
         args, criterion, device, train_transform, test_transform, n_classes
     )
+    logger.info(f"[1] Select a CIL method ({args.mode})")
 
-        # Running from checkpoint
-    ''' Add the checkpoint loading (from MNVI)
-    '''
-    
+
+
+    # Load the checkpoint
     if args.checkpoint_path is not None and args.bayesian_model is True:
         method.checkpoint_saver_loader()
-
 
 
     logger.info(f"[2] Incrementally training {args.n_tasks} tasks")

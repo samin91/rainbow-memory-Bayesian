@@ -155,10 +155,10 @@ def base_parser():
      # Coreset size of the expanding memory
     parser.add_argument(
         "--expanding_memory",
-        action="store_false",
+        action="store_true",
         help="Growing memory replaces the fixed memory when our dataset has few smaples per task",
     )
-    # Coreset size of the expanding memory
+    # Coreset size for the expanding memory
     parser.add_argument(
         "--coreset_size",
         type=int,

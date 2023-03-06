@@ -36,10 +36,10 @@ class CheckpointSaver:
     #
     @staticmethod
     def _load_state_dict_into_module(state_dict, module, strict=True):
-        #pdb.set_trace()
+        pdb.set_trace()
         own_state = module.state_dict()
         for name, param in state_dict.items():
-            name = name.split(".", maxsplit=2)[2]  # added by mar-ret
+            name = name.split(".", maxsplit=3)[-1]  # added by mar-ret
             if name in own_state:
                 #print("Loading {} into module".format(name))  # added by mar-ret
                 if isinstance(param, nn.Parameter):

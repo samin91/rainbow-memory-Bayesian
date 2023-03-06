@@ -214,6 +214,7 @@ class ImageResNetMNCL(nn.Module):
         self.relu = varprop.ReLU(keep_variance_fn=self._keep_variance_fn)
 
         self.maxpool = varprop.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.avgpool2d = varprop.AvgPool2d(kernel_size=3, stride=2, padding=1)
 
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2,
@@ -363,6 +364,7 @@ class ImageResNetMNCL(nn.Module):
         # Remove max_pooling because the implementation of 
         # this layer is non-deterministic 
         x = self.maxpool(*x)
+        #x = self.avgpool2d(*x)
         
         # Layer_1
         # check nan
