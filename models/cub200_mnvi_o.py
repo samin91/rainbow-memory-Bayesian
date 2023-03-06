@@ -303,7 +303,7 @@ class ImageResNetMNCL(nn.Module):
         return out_mean, out_variance
 
     def forward_sampling(self, inputs):
-        pdb.set_trace()
+        #pdb.set_trace()
         x = self.conv1.forward_sampling(inputs)
         x = self.bn1.forward_sampling(x)
         x = F.relu(x)

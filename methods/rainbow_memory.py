@@ -93,7 +93,8 @@ class RM(Finetune):
                 for param_group in self.optimizer.param_groups:
                     param_group["lr"] = self.lr
             else:  # Aand go!
-                self.scheduler.step()
+                if self.scheduler is not None:
+                    self.scheduler.step()
 
             train_loss, train_acc = self._train(train_loader=train_loader, memory_loader=memory_loader,
                                                 optimizer=self.optimizer, criterion=self.criterion)

@@ -36,7 +36,7 @@ class CheckpointSaver:
     #
     @staticmethod
     def _load_state_dict_into_module(state_dict, module, strict=True):
-        pdb.set_trace()
+        #pdb.set_trace()
         own_state = module.state_dict()
         for name, param in state_dict.items():
             name = name.split(".", maxsplit=2)[2]  # added by mar-ret
@@ -64,7 +64,7 @@ class CheckpointSaver:
                 raise KeyError('missing keys in state_dict: "{}"'.format(missing))
 
     def restore(self, filename, model, include_params="*", exclude_params=()):
-        pdb.set_trace()
+        #pdb.set_trace()
         # -----------------------------------------------------------------------------------------
         # Make sure file exists
         # -----------------------------------------------------------------------------------------

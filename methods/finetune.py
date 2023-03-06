@@ -706,7 +706,7 @@ class Finetune:
 
     def checkpoint_saver_loader(self, ):
         """Manage the checkpoint of the model."""
-        pdb.set_trace()
+        #pdb.set_trace()
         checkpoint_saver = CheckpointSaver()
         checkpoint_stats = None
 

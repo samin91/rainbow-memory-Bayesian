@@ -102,7 +102,7 @@ class FCBlock_bayes(nn.Module):
     def __init__(self, opt, in_channels, out_channels, bias=False):
         super(FCBlock_bayes, self).__init__()
 
-        pdb.set_trace()
+        #pdb.set_trace()
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.in_features = in_channels
@@ -118,7 +118,7 @@ class FCBlock_bayes(nn.Module):
         
 
 def FinalBlock(opt, in_channels, bias=False):
-    pdb.set_trace()
+    #pdb.set_trace()
     out_channels = opt.num_classes
     opt = copy.deepcopy(opt)
     

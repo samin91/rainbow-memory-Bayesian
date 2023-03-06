@@ -62,7 +62,11 @@ class ClassificationLossVI(nn.Module):
             # add prediction which is out logit to the loss dict
             losses['prediction'] = prediction
             # this needs to be either computed on the cpu or reimplemented in cuda
-            loss = F.cross_entropy(prediction, target_expanded, reduction='mean')
+            # Implement the following yourself
+            # loss = F.cross_entropy(prediction, target_expanded, reduction='mean')
+            p = F.softmax(prediction, dim=1).mean(dim=2)
+            loss = - torch.log(p[range(p.shape[0]), target]).mean()
+             
             if torch.isnan(loss):
                 print('loss is nan')
             kl_div = output_dict['kl_div']
