@@ -110,8 +110,8 @@ class Finetune:
 
     def before_task(self, datalist, cur_iter, init_model=False, init_opt=True, bayesian=False):
         logger.info("Apply before_task")
-        incoming_classes = pd.DataFrame(datalist)["klass"].unique().tolist()
-        self.exposed_classes = list(set(self.learned_classes + incoming_classes))
+        self.incoming_classes = pd.DataFrame(datalist)["klass"].unique().tolist()
+        self.exposed_classes = list(set(self.learned_classes + self.incoming_classes))
         self.num_learning_class = max(
             len(self.exposed_classes), self.num_learning_class
         )
@@ -179,17 +179,24 @@ class Finetune:
         self.already_mem_update = False
 
     def after_task(self, cur_iter):
+        
         logger.info("Apply after_task")
-        self.learned_classes = self.exposed_classes
+        self.learned_classes = self.exposed_classes # classes seen so far
         self.num_learned_class = self.num_learning_class
         self.update_memory(cur_iter)
 
     def update_memory(self, cur_iter, num_class=None):
+        
         if num_class is None:
-            num_class = self.num_learning_class
+            if self.expanding_memory is True:
+                '''ToDo:
+                    1. Check if this is correct for the blurry case in particular
+                '''
+                num_class = len(self.incoming_classes) # classes in the current task
+            else:
+                num_class = self.num_learning_class #classes seen so far
         
         if not self.already_mem_update:
-            
             if self.expanding_memory is True:
                 logger.info(f"Update the growing memory over {num_class} classes by {self.mem_manage}")
                 candidates = self.streamed_list 
@@ -575,19 +582,19 @@ class Finetune:
         Args:
             samples ([list]): [training_list + memory_list]
         """
-    
+
         if self.bayesian:
             self.bayesian_uncertainty(samples)
         else: 
             self.montecarlo(samples, uncert_metric=self.uncert_metric)
 
-    
+        pdb.set_trace()
         sample_df = pd.DataFrame(samples)
 
         ''' Here we can choose between grwoing or fixed memory 
             members per class changes 
         '''
-        if self.growing_memory:
+        if self.expanding_memory:
             mem_per_cls = self.coreset_size // num_class
         else: 
             mem_per_cls = self.memory_size // num_class
@@ -704,29 +711,41 @@ class Finetune:
 
 
     def equal_class_sampling(self, samples, num_class):
-       
-        mem_per_cls = self.memory_size // num_class
+        
         sample_df = pd.DataFrame(samples)
-        # Warning: assuming the classes were ordered following task number.
         ret = []
-        for y in range(self.num_learning_class):
-            cls_df = sample_df[sample_df["label"] == y]
-            ret += cls_df.sample(n=min(mem_per_cls, len(cls_df))).to_dict(
-                orient="records"
-            )
 
-        num_rest_slots = self.memory_size - len(ret)
-        if num_rest_slots > 0:
-            logger.warning("Fill the unused slots by breaking the equilibrium.")
-            ret += (
-                sample_df[~sample_df.file_name.isin(pd.DataFrame(ret).file_name)]
-                .sample(n=num_rest_slots)
-                .to_dict(orient="records")
-            )
+        if self.expanding_memory:
+            mem_per_cls = self.coreset_size // num_class
+            # Warning: assuming the classes were ordered following task number.
+            for y in range(num_class):
+                cls_df = sample_df[sample_df["label"] == y]
+                ret += cls_df.sample(n=min(mem_per_cls, len(cls_df))).to_dict(
+                    orient="records"
+                )
+            assert len(ret) == self.coreset_size 
+        else:
+            mem_per_cls = self.memory_size // num_class
+            # Warning: assuming the classes were ordered following task number.
+            
+            for y in range(self.num_learning_class):
+                cls_df = sample_df[sample_df["label"] == y]
+                ret += cls_df.sample(n=min(mem_per_cls, len(cls_df))).to_dict(
+                    orient="records"
+                )
 
-        num_dups = pd.DataFrame(ret).file_name.duplicated().sum()
-        if num_dups > 0:
-            logger.warning(f"Duplicated samples in memory: {num_dups}")
+            num_rest_slots = self.memory_size - len(ret)
+            if num_rest_slots > 0:
+                logger.warning("Fill the unused slots by breaking the equilibrium.")
+                ret += (
+                    sample_df[~sample_df.file_name.isin(pd.DataFrame(ret).file_name)]
+                    .sample(n=num_rest_slots)
+                    .to_dict(orient="records")
+                )
+
+            num_dups = pd.DataFrame(ret).file_name.duplicated().sum()
+            if num_dups > 0:
+                logger.warning(f"Duplicated samples in memory: {num_dups}")
 
         return ret
 
@@ -815,10 +834,6 @@ class Finetune:
                 prediction = prediction_mean + torch.sqrt(prediction_variance) * normals
                 logit = prediction #torch.Size([batch_size, num_classes, samples])
                 for i, cert_value in enumerate(logit): #cert_value is the logit of the each image: torch.Size([num_classes, samples])
-                    # infer list members: 
-                    # {'klass': 'White_throated_Sparrow', 
-                    # 'file_name': 'train/White_throated_Sparrow/White_Throated_Sparrow_0031_128808.jpg', 
-                    # 'label': 29}
                     sample = samples[batch_size * n_batch + i] 
                     sample['uncertainties'] = 1 - cert_value
                 
