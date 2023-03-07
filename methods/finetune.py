@@ -29,7 +29,7 @@ import pdb
 
 logger = logging.getLogger()
 # log = f"tensorboard/Run_{}" ???
-writer = SummaryWriter(f"tensorboard/run_{2}")
+writer = SummaryWriter(f"tensorboard/run_{1}")
 
 
 class ICaRLNet(nn.Module):

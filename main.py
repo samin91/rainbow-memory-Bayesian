@@ -50,7 +50,7 @@ def main():
     logger.addHandler(fileHandler)
 
     # Tensorboard
-    writer = SummaryWriter(f"tensorboard/run_{2}")
+    writer = SummaryWriter(f"tensorboard/run_{1}")
 
     # Device
     # add an argument the device args.device="cuda:0" or "cpu"

@@ -18,7 +18,7 @@ import pdb
 
 logger = logging.getLogger()
 # log = f"tensorboard/Run_{}" ???
-writer = SummaryWriter(f"tensorboard/run_{2}")
+writer = SummaryWriter(f"tensorboard/run_{1}")
 
 
 def cycle(iterable):
@@ -87,8 +87,11 @@ class RM(Finetune):
             # optimizer.param_groups is a python list, which contains a dictionary.
             if epoch <= 0:  # Warm start of 1 epoch
                 for param_group in self.optimizer.param_groups:
-                    # param_group is the dict inside the list and is the only item in this list. 
-                    param_group["lr"] = self.lr * 0.1
+                    # param_group is the dict inside the list and is the only item in this list.
+                    if self.bayesian is True:
+                        param_group["lr"] = self.lr
+                    else:
+                        param_group["lr"] = self.lr * 0.1
             elif epoch == 1:  # Then set to maxlr
                 for param_group in self.optimizer.param_groups:
                     param_group["lr"] = self.lr

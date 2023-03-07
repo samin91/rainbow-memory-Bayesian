@@ -20,7 +20,7 @@ from utils.train_utils import select_model
 from torch.utils.tensorboard import SummaryWriter
 
 logger = logging.getLogger()
-writer = SummaryWriter(f"tensorboard/run_{2}")
+writer = SummaryWriter(f"tensorboard/run_{1}")
 
 
 class BiasCorrectionLayer(nn.Module):
