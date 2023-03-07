@@ -36,6 +36,7 @@ class ClassificationLossVI(nn.Module):
         self.device = args.device
 
     def forward(self, output_dict, target_dict):
+        pdb.set_trace()
         samples = 64
         prediction_mean = output_dict['prediction_mean'].unsqueeze(dim=2).expand(-1, -1, samples)
         prediction_variance = output_dict['prediction_variance'].unsqueeze(dim=2).expand(-1, -1, samples)

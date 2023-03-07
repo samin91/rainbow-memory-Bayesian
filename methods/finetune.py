@@ -197,6 +197,7 @@ class Finetune:
                         self.memory_list.extend(self.rnd_sampling(candidates, self.coreset_size))
                 '''ToDo:
                 elif: self.mem_manage == "uncertainty":
+                    
                 '''
             else:
                 logger.info(f"Update memory over {num_class} classes by {self.mem_manage}")
@@ -217,6 +218,7 @@ class Finetune:
                             num_class=num_class,
                         )
                     elif self.mem_manage == "uncertainty":
+                        
                         if cur_iter == 0:
                             # how does this work for a Bayesian model? the same as normal models
                             self.memory_list = self.equal_class_sampling(
@@ -562,27 +564,33 @@ class Finetune:
         return new_exemplar_set
 
     def uncertainty_sampling(self, samples, num_class):
+        
         """uncertainty based sampling
 
         Args:
             samples ([list]): [training_list + memory_list]
         """
         # what happens here?
+        '''
+        if self.bayesian:
+            add the uncertainty value per sample to the samples list
+            The question is how do we define the uncertainty for the bayesian output
+        '''
         self.montecarlo(samples, uncert_metric=self.uncert_metric)
 
+    
         sample_df = pd.DataFrame(samples)
         mem_per_cls = self.memory_size // num_class
-
         ret = []
         for i in range(num_class):
-            cls_df = sample_df[sample_df["label"] == i]
+            cls_df = sample_df[sample_df["label"] == i] # class data frame
             if len(cls_df) <= mem_per_cls:
-                ret += cls_df.to_dict(orient="records")
+                ret += cls_df.to_dict(orient="records") # converts the dataframe to a list of dictionaries
             else:
                 jump_idx = len(cls_df) // mem_per_cls
                 uncertain_samples = cls_df.sort_values(by="uncertainty")[::jump_idx]
                 ret += uncertain_samples[:mem_per_cls].to_dict(orient="records")
-
+        pdb.set_trace()
         num_rest_slots = self.memory_size - len(ret)
         if num_rest_slots > 0:
             logger.warning("Fill the unused slots by breaking the equilibrium.")
@@ -599,6 +607,7 @@ class Finetune:
         return ret
 
     def _compute_uncert(self, infer_list, infer_transform, uncert_name):
+        
         batch_size = 32
         infer_df = pd.DataFrame(infer_list)
         infer_dataset = ImageDataset(
@@ -611,16 +620,30 @@ class Finetune:
         self.model.eval()
         with torch.no_grad():
             for n_batch, data in enumerate(infer_loader):
-                x = data["image"]
+                x = data["image"] #torch.Size([32, 3, 224, 224])
                 x = x.to(self.device)
                 logit = self.model(x)
-                logit = logit.detach().cpu()
+                logit = logit.detach().cpu() #torch.Size([32, num_classes])
 
-                for i, cert_value in enumerate(logit):
-                    sample = infer_list[batch_size * n_batch + i]
+                for i, cert_value in enumerate(logit): #cert_value is the logit of the each image: torch.Size([30])
+                    # infer list members: 
+                    # {'klass': 'White_throated_Sparrow', 
+                    # 'file_name': 'train/White_throated_Sparrow/White_Throated_Sparrow_0031_128808.jpg', 
+                    # 'label': 29}
+                    sample = infer_list[batch_size * n_batch + i] 
                     sample[uncert_name] = 1 - cert_value
+                    '''
+                    {'klass': 'White_throated_Sparrow', 'file_name': 'train/White_throated_Sparrow/White_Throated_Sparrow_0031_128808.jpg', 'label': 29, 
+                    'uncert_0': tensor([ 0.6901,  1.8171,  1.0081,  2.2003,  1.2164,  0.1057,  2.0374,  0.0638,
+                    0.1433,  0.5314,  0.7850,  2.5484,  0.5498,  0.8810,  0.2965,  2.0254,
+                    2.0250,  1.8225,  1.8064,  2.4466, -0.5500,  0.0042,  1.8341,  2.0047,
+                    0.9955,  1.3818, -3.4274,  0.5815,  1.7533, -0.1668]),
+                    'uncert_1':
+                    , ... }
+                    '''
 
     def montecarlo(self, candidates, uncert_metric="vr"):
+        
         transform_cands = []
         logger.info(f"Compute uncertainty by {uncert_metric}!")
         if uncert_metric == "vr":
@@ -648,7 +671,7 @@ class Finetune:
 
         n_transforms = len(transform_cands)
 
-        for idx, tr in enumerate(transform_cands):
+        for idx, tr in enumerate(transform_cands): #Random Augment Policy
             _tr = transforms.Compose([tr] + self.test_transform.transforms)
             self._compute_uncert(candidates, _tr, uncert_name=f"uncert_{str(idx)}")
 
@@ -656,20 +679,20 @@ class Finetune:
             self.variance_ratio(sample, n_transforms)
 
 
-
-
     def variance_ratio(self, sample, cand_length):
-        vote_counter = torch.zeros(sample["uncert_0"].size(0))
-        for i in range(cand_length):
+        #pdb.set_trace()
+        vote_counter = torch.zeros(sample["uncert_0"].size(0)) # troch.Size([30])
+        for i in range(cand_length): #candidate length is 12
             top_class = int(torch.argmin(sample[f"uncert_{i}"]))  # uncert argmin.
             vote_counter[top_class] += 1
         assert vote_counter.sum() == cand_length
-        sample["uncertainty"] = (1 - vote_counter.max() / cand_length).item()
+        sample["uncertainty"] = (1 - vote_counter.max() / cand_length).item() # out of 12 predictions per sample, how many times the most voted class was not predicted
 
 
 
 
     def equal_class_sampling(self, samples, num_class):
+       
         mem_per_cls = self.memory_size // num_class
         sample_df = pd.DataFrame(samples)
         # Warning: assuming the classes were ordered following task number.

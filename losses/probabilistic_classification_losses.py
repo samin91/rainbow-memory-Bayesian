@@ -29,7 +29,7 @@ class ClassificationLossVI(nn.Module):
         self._topk = tuple(range(1, topk+1))
 
     def forward(self, output_dict, target_dict):
-        #pdb.set_trace()
+        pdb.set_trace()
         samples = 64
         
         prediction_mean = output_dict['prediction_mean'].unsqueeze(dim=2).expand(-1, -1, samples)
