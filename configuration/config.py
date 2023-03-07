@@ -169,7 +169,7 @@ def base_parser():
     #Bayesian mode
     parser.add_argument(
         "--bayesian_model",
-        action="store_false",
+        action="store_true",
         help="Use Bayesian model for uncertainty estimation",
     )
     # Bayesian arguments 

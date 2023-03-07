@@ -197,6 +197,9 @@ class Finetune:
                 num_class = self.num_learning_class #classes seen so far
         
         if not self.already_mem_update:
+            # -------------------------------------------
+            # EXPAMING MEMORY
+            # -------------------------------------------
             if self.expanding_memory is True:
                 logger.info(f"Update the growing memory over {num_class} classes by {self.mem_manage}")
                 candidates = self.streamed_list 
@@ -209,10 +212,10 @@ class Finetune:
                                 candidates, num_class
                             )
                         else:
-                            self.memory_list = self.uncertainty_sampling(
-                                candidates,
-                                num_class=num_class, #of the current task?
-                            )
+                            self.memory_list = self.uncertainty_sampling(candidates, num_class, cur_iter)
+            # -------------------------------------------
+            # FIXED MEMORY
+            # -------------------------------------------
             else:
                 logger.info(f"Update memory over {num_class} classes by {self.mem_manage}")
                 candidates = self.streamed_list + self.memory_list
@@ -240,12 +243,13 @@ class Finetune:
                         else:
                             self.memory_list = self.uncertainty_sampling(
                                 candidates,
-                                num_class=num_class,
+                                num_class,
+                                cur_iter
                             )
                     else:
                         logger.error("Not implemented memory management")
                         raise NotImplementedError
-
+            # -----------------------------------------------------------
             assert len(self.memory_list) <= self.memory_size
             logger.info("Memory statistic")
             memory_df = pd.DataFrame(self.memory_list)
@@ -576,52 +580,76 @@ class Finetune:
 
         return new_exemplar_set
 
-    def uncertainty_sampling(self, samples, num_class):
+    def uncertainty_sampling(self, samples, num_class, cur_iter):
         
         """uncertainty based sampling
         Args:
             samples ([list]): [training_list + memory_list]
         """
-
+        
+        # ---------------------------------------------------------------------
+        # Add majority voting based uncertainty values to the samples dictionary
+        # ---------------------------------------------------------------------
         if self.bayesian:
-            self.bayesian_uncertainty(samples)
-        else: 
+            '''ToDo: compute time
+            '''
+            self._Bayesian(samples)
+        else:
+            '''ToDo: compute time
+            ''' 
+            # RM original: ensmebling of 12 passes of augmented images
             self.montecarlo(samples, uncert_metric=self.uncert_metric)
 
-        pdb.set_trace()
-        sample_df = pd.DataFrame(samples)
 
-        ''' Here we can choose between grwoing or fixed memory 
-            members per class changes 
-        '''
+        sample_df = pd.DataFrame(samples)
+        ret = []
+        # ---------------------------------------------------------------------
+        # EXPANDING MEMORY
+        # ---------------------------------------------------------------------
         if self.expanding_memory:
             mem_per_cls = self.coreset_size // num_class
+            '''ToDo: labels are task_0: 0-9, task_1: 10-19 and so on
+                This needs to be considerd for the case of expanding memory where we only sample from the current task
+            '''
+            # define label range
+            start = cur_iter*num_class
+            End = (cur_iter+1)*num_class
+            for i in range(start, End):
+                cls_df = sample_df[sample_df["label"] == i] # class data frame
+                if len(cls_df) <= mem_per_cls:
+                    ret += cls_df.to_dict(orient="records") # converts the dataframe to a list of dictionaries
+                else:
+                    # RM jumping strategy
+                    jump_idx = len(cls_df) // mem_per_cls
+                    uncertain_samples = cls_df.sort_values(by="uncertainty")[::jump_idx]
+                    ret += uncertain_samples[:mem_per_cls].to_dict(orient="records")
+        # ---------------------------------------------------------------------
+        # FIXED MEMORY
+        # ---------------------------------------------------------------------
         else: 
             mem_per_cls = self.memory_size // num_class
+            for i in range(num_class):
+                cls_df = sample_df[sample_df["label"] == i] # class data frame
+                if len(cls_df) <= mem_per_cls:
+                    ret += cls_df.to_dict(orient="records") # converts the dataframe to a list of dictionaries
+                else:
+                    # RM jumping strategy
+                    jump_idx = len(cls_df) // mem_per_cls
+                    uncertain_samples = cls_df.sort_values(by="uncertainty")[::jump_idx]
+                    ret += uncertain_samples[:mem_per_cls].to_dict(orient="records")
+           
+            num_rest_slots = self.memory_size - len(ret)
+            if num_rest_slots > 0:
+                logger.warning("Fill the unused slots by breaking the equilibrium.")
+                ret += (
+                    sample_df[~sample_df.file_name.isin(pd.DataFrame(ret).file_name)]
+                    .sample(n=num_rest_slots)
+                    .to_dict(orient="records")
+                )
 
-        ret = []
-        for i in range(num_class):
-            cls_df = sample_df[sample_df["label"] == i] # class data frame
-            if len(cls_df) <= mem_per_cls:
-                ret += cls_df.to_dict(orient="records") # converts the dataframe to a list of dictionaries
-            else:
-                # RM jumping strategy
-                jump_idx = len(cls_df) // mem_per_cls
-                uncertain_samples = cls_df.sort_values(by="uncertainty")[::jump_idx]
-                ret += uncertain_samples[:mem_per_cls].to_dict(orient="records")
-        pdb.set_trace()
-        num_rest_slots = self.memory_size - len(ret)
-        if num_rest_slots > 0:
-            logger.warning("Fill the unused slots by breaking the equilibrium.")
-            ret += (
-                sample_df[~sample_df.file_name.isin(pd.DataFrame(ret).file_name)]
-                .sample(n=num_rest_slots)
-                .to_dict(orient="records")
-            )
-
-        num_dups = pd.DataFrame(ret).file_name.duplicated().sum()
-        if num_dups > 0:
-            logger.warning(f"Duplicated samples in memory: {num_dups}")
+            num_dups = pd.DataFrame(ret).file_name.duplicated().sum()
+            if num_dups > 0:
+                logger.warning(f"Duplicated samples in memory: {num_dups}")
 
         return ret
 
@@ -711,10 +739,12 @@ class Finetune:
 
 
     def equal_class_sampling(self, samples, num_class):
-        
+
         sample_df = pd.DataFrame(samples)
         ret = []
-
+        # -------------------------------------------------
+        # EXPANDING MEMORY
+        # -------------------------------------------------
         if self.expanding_memory:
             mem_per_cls = self.coreset_size // num_class
             # Warning: assuming the classes were ordered following task number.
@@ -724,6 +754,9 @@ class Finetune:
                     orient="records"
                 )
             assert len(ret) == self.coreset_size 
+        # -------------------------------------------------
+        # FIXED MEMORY
+        # -------------------------------------------------
         else:
             mem_per_cls = self.memory_size // num_class
             # Warning: assuming the classes were ordered following task number.
@@ -802,51 +835,62 @@ class Finetune:
         return checkpoint_saver, checkpoint_stats, filename
     
     # Bayesian uncertainty 
-    def uncertainty_sampling(self, samples):
+    def _Bayesian(self, infer_list):
         """uncertainty per sample computation for a bayesian model.
         Args:
             samples ([list]): [training_list]
         """
-        batch_size=1
+       
+        batch_size=32
         infer_transform = transforms.Compose(self.test_transform.transforms)
         # Consider the bayesian case first
-        infer_df = pd.DataFrame(samples)
+        infer_df = pd.DataFrame(infer_list)
         infer_dataset = ImageDataset(
             infer_df, dataset=self.dataset, transform=infer_transform
         )
         infer_loader = DataLoader(
             infer_dataset, shuffle=False, batch_size=batch_size, num_workers=2
         )
+        # ----------------------------------------
+        # INFERENCE
+        # ----------------------------------------
         self.model.eval()
         with torch.no_grad():
             for n_batch, data in enumerate(infer_loader):
                 x = data["image"] #torch.Size([32, 3, 224, 224])
                 x = x.to(self.device)
                 logit_dict = self.model(x)
-                logit_dict = logit_dict.detach().cpu() #torch.Size([32, num_classes])
-                # compute the prediction for the Bayesian model
+                #logit_dict = logit_dict.detach().cpu() #torch.Size([32, num_classes])
+                # -----------------------------------------------------------------------------------
+                # Detaching tensors and moving them to CPU - I am not sure if this is necessary here!
+                # ------------------------------------------------------------------------------------
+                logit_dict_prediction_mean = logit_dict['prediction_mean'].detach().cpu()
+                logit_dict_prediction_variance = logit_dict['prediction_variance'].detach().cpu()
+                # Samples from the output distribution
                 samples = 64
-                prediction_mean = logit_dict['prediction_mean'].unsqueeze(dim=2).expand(-1, -1, samples)
-                prediction_variance = logit_dict['prediction_variance'].unsqueeze(dim=2).expand(-1, -1, samples)
+                prediction_mean = logit_dict_prediction_mean.unsqueeze(dim=2).expand(-1, -1, samples)
+                prediction_variance = logit_dict_prediction_variance.unsqueeze(dim=2).expand(-1, -1, samples)
                 normal_dist = torch.distributions.normal.Normal(torch.zeros_like(prediction_mean), 
                                                         torch.ones_like(prediction_mean))
                 normals =  normal_dist.sample()
-                prediction = prediction_mean + torch.sqrt(prediction_variance) * normals
-                logit = prediction #torch.Size([batch_size, num_classes, samples])
+                logit = prediction_mean + torch.sqrt(prediction_variance) * normals #torch.Size([batch_size, num_classes, samples])
                 for i, cert_value in enumerate(logit): #cert_value is the logit of the each image: torch.Size([num_classes, samples])
-                    sample = samples[batch_size * n_batch + i] 
-                    sample['uncertainties'] = 1 - cert_value
+                    sample = infer_list[batch_size * n_batch + i] 
+                    sample['uncertainties'] = 1 - cert_value #cert_value[:,0] for indexing cert_value so we see the individual outputs 
                 
         # Do the majority voting per sample predictions 
-        for sample in samples:
-            self.variance_ratio_bayesian(sample, sample['uncertainties'].size(1) )
+        for sample in infer_list:
+            self.variance_ratio_bayesian(sample, sample['uncertainties'].size(1))
         
-    def variance_ratio_bayesian(self, sample, cand_length):
-        #pdb.set_trace()
-        vote_counter = torch.zeros(sample["uncertainties"].size(1)) # troch.Size([30])
+    def variance_ratio_bayesian(self, sample, cand_length=64):
+        
+        vote_counter = torch.zeros(sample["uncertainties"].size(0)) # troch.Size([30])
         for i in range(cand_length): #candidate length is 64
-            top_class = int(torch.argmin(sample['uncertainties'][i]))  # uncert argmin.
+            top_class = int(torch.argmin(sample['uncertainties'][:,i]))  # uncert argmin.
             vote_counter[top_class] += 1
-        assert vote_counter.sum() == cand_length
+        
+        assert vote_counter.sum() == cand_length #number of samples per image=64
+        
+        # Does it make sense to use majority votig for a bayesian model?
         sample["uncertainty"] = (1 - vote_counter.max() / cand_length).item() # out of 12 predictions per sample, how many times the most voted class was not predicted
-
+        
