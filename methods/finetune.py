@@ -195,10 +195,17 @@ class Finetune:
                 candidates = self.streamed_list 
                 if self.mem_manage == "random":
                         self.memory_list.extend(self.rnd_sampling(candidates, self.coreset_size))
-                '''ToDo:
-                elif: self.mem_manage == "uncertainty":
-                    
-                '''
+                elif self.mem_manage == "uncertainty":
+                        if cur_iter == 0:
+                            # how does this work for a Bayesian model? the same as normal models
+                            self.memory_list = self.equal_class_sampling(
+                                candidates, num_class
+                            )
+                        else:
+                            self.memory_list = self.uncertainty_sampling(
+                                candidates,
+                                num_class=num_class, #of the current task?
+                            )
             else:
                 logger.info(f"Update memory over {num_class} classes by {self.mem_manage}")
                 candidates = self.streamed_list + self.memory_list
@@ -218,7 +225,6 @@ class Finetune:
                             num_class=num_class,
                         )
                     elif self.mem_manage == "uncertainty":
-                        
                         if cur_iter == 0:
                             # how does this work for a Bayesian model? the same as normal models
                             self.memory_list = self.equal_class_sampling(
@@ -486,7 +492,7 @@ class Finetune:
                 logger.warning(f"Duplicated samples in memory: {num_dups}")
 
             return ret
-
+        # this makes sense for the case of a fixed memory
         mem_per_cls = self.memory_size // num_class
         exemplars = _reduce_exemplar_sets(exemplars, mem_per_cls)
         old_exemplar_df = pd.DataFrame(exemplars)
@@ -566,27 +572,33 @@ class Finetune:
     def uncertainty_sampling(self, samples, num_class):
         
         """uncertainty based sampling
-
         Args:
             samples ([list]): [training_list + memory_list]
         """
-        # what happens here?
-        '''
+    
         if self.bayesian:
-            add the uncertainty value per sample to the samples list
-            The question is how do we define the uncertainty for the bayesian output
-        '''
-        self.montecarlo(samples, uncert_metric=self.uncert_metric)
+            self.bayesian_uncertainty(samples)
+        else: 
+            self.montecarlo(samples, uncert_metric=self.uncert_metric)
 
     
         sample_df = pd.DataFrame(samples)
-        mem_per_cls = self.memory_size // num_class
+
+        ''' Here we can choose between grwoing or fixed memory 
+            members per class changes 
+        '''
+        if self.growing_memory:
+            mem_per_cls = self.coreset_size // num_class
+        else: 
+            mem_per_cls = self.memory_size // num_class
+
         ret = []
         for i in range(num_class):
             cls_df = sample_df[sample_df["label"] == i] # class data frame
             if len(cls_df) <= mem_per_cls:
                 ret += cls_df.to_dict(orient="records") # converts the dataframe to a list of dictionaries
             else:
+                # RM jumping strategy
                 jump_idx = len(cls_df) // mem_per_cls
                 uncertain_samples = cls_df.sort_values(by="uncertainty")[::jump_idx]
                 ret += uncertain_samples[:mem_per_cls].to_dict(orient="records")
@@ -769,3 +781,57 @@ class Finetune:
             quit()
 
         return checkpoint_saver, checkpoint_stats, filename
+    
+    # Bayesian uncertainty 
+    def uncertainty_sampling(self, samples):
+        """uncertainty per sample computation for a bayesian model.
+        Args:
+            samples ([list]): [training_list]
+        """
+        batch_size=1
+        infer_transform = transforms.Compose(self.test_transform.transforms)
+        # Consider the bayesian case first
+        infer_df = pd.DataFrame(samples)
+        infer_dataset = ImageDataset(
+            infer_df, dataset=self.dataset, transform=infer_transform
+        )
+        infer_loader = DataLoader(
+            infer_dataset, shuffle=False, batch_size=batch_size, num_workers=2
+        )
+        self.model.eval()
+        with torch.no_grad():
+            for n_batch, data in enumerate(infer_loader):
+                x = data["image"] #torch.Size([32, 3, 224, 224])
+                x = x.to(self.device)
+                logit_dict = self.model(x)
+                logit_dict = logit_dict.detach().cpu() #torch.Size([32, num_classes])
+                # compute the prediction for the Bayesian model
+                samples = 64
+                prediction_mean = logit_dict['prediction_mean'].unsqueeze(dim=2).expand(-1, -1, samples)
+                prediction_variance = logit_dict['prediction_variance'].unsqueeze(dim=2).expand(-1, -1, samples)
+                normal_dist = torch.distributions.normal.Normal(torch.zeros_like(prediction_mean), 
+                                                        torch.ones_like(prediction_mean))
+                normals =  normal_dist.sample()
+                prediction = prediction_mean + torch.sqrt(prediction_variance) * normals
+                logit = prediction #torch.Size([batch_size, num_classes, samples])
+                for i, cert_value in enumerate(logit): #cert_value is the logit of the each image: torch.Size([num_classes, samples])
+                    # infer list members: 
+                    # {'klass': 'White_throated_Sparrow', 
+                    # 'file_name': 'train/White_throated_Sparrow/White_Throated_Sparrow_0031_128808.jpg', 
+                    # 'label': 29}
+                    sample = samples[batch_size * n_batch + i] 
+                    sample['uncertainties'] = 1 - cert_value
+                
+        # Do the majority voting per sample predictions 
+        for sample in samples:
+            self.variance_ratio_bayesian(sample, sample['uncertainties'].size(1) )
+        
+    def variance_ratio_bayesian(self, sample, cand_length):
+        #pdb.set_trace()
+        vote_counter = torch.zeros(sample["uncertainties"].size(1)) # troch.Size([30])
+        for i in range(cand_length): #candidate length is 64
+            top_class = int(torch.argmin(sample['uncertainties'][i]))  # uncert argmin.
+            vote_counter[top_class] += 1
+        assert vote_counter.sum() == cand_length
+        sample["uncertainty"] = (1 - vote_counter.max() / cand_length).item() # out of 12 predictions per sample, how many times the most voted class was not predicted
+
