@@ -125,6 +125,9 @@ def main():
 
 
     # Load the checkpoint
+    '''ToDo:
+        change the arguments so we can easily change the availability of checkpoining 
+    '''
     if args.checkpoint_path is not None and args.bayesian_model is True:
         method.checkpoint_saver_loader()
 
