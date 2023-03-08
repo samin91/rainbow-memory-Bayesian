@@ -50,7 +50,7 @@ def main():
     logger.addHandler(fileHandler)
 
     # Tensorboard
-    writer = SummaryWriter(f"tensorboard/run_{1}")
+    writer = SummaryWriter(f"test/run_{1}")
 
     # Device
     # add an argument the device args.device="cuda:0" or "cpu"
@@ -210,8 +210,9 @@ def main():
             method.after_task(cur_iter)
 
         logger.info("[2-4] Update the information for the current task")
-        # should we update the prior here?
+        
         method.after_task(cur_iter)
+        
         if args.bayesian_model is True:
             logger.info("[2-4] Update the prior for the current task: posterior -> prior")
             #prior_conversion = args.prior_conv_func

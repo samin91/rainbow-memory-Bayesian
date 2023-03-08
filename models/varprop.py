@@ -121,6 +121,7 @@ class LinearMNCL(nn.Module):
         return kld
 
     def save_prior_and_weights(self, prior_conv_func):
+        
         self.mult_noise_variance_copy = self.mult_noise_variance.clone().detach().data
         self.weight_copy = self.weight.clone().detach().data
         if self.has_bias:
@@ -140,6 +141,7 @@ class LinearMNCL(nn.Module):
             self.bias.data = self.bias_copy.clone().detach().data
         
     def update_prior_and_weights_from_saved(self):
+       
         self.prior_precision = self.saved_prior_precision.clone().detach().data
         self.prior_mean = self.saved_prior_mean.clone().detach().data
         self.mult_noise_variance.data = self.mult_noise_variance_copy.clone().detach().data
@@ -742,6 +744,7 @@ class Conv2dMNCL(_ConvNd):
         return kld
 
     def save_prior_and_weights(self, prior_conv_func):
+        
         self.mult_noise_variance_copy = self.mult_noise_variance.clone().detach().data
         self.weight_copy = self.weight.clone().detach().data
         if self.has_bias:
@@ -754,6 +757,7 @@ class Conv2dMNCL(_ConvNd):
         self.prior_mean = self.weight.clone().detach().data
 
     def update_prior_and_weights_from_saved(self):
+        
         self.prior_precision = self.saved_prior_precision.clone().detach().data
         self.prior_mean = self.saved_prior_mean.clone().detach().data
         self.mult_noise_variance.data = self.mult_noise_variance_copy.clone().detach().data

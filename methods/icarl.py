@@ -16,7 +16,7 @@ from utils.data_loader import cutmix_data
 from utils.train_utils import select_optimizer
 
 logger = logging.getLogger()
-writer = SummaryWriter(f"tensorboard/run_{1}")
+writer = SummaryWriter(f"test/run_{1}")
 
 
 class ICaRLNet(nn.Module):

@@ -18,7 +18,7 @@ import pdb
 
 logger = logging.getLogger()
 # log = f"tensorboard/Run_{}" ???
-writer = SummaryWriter(f"tensorboard/run_{1}")
+writer = SummaryWriter(f"test/run_{1}")
 
 
 def cycle(iterable):
