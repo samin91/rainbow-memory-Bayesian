@@ -9,7 +9,7 @@ DATASET="cub200" # mnist, cifar10, cifar100, imagenet, cub200
 STREAM="offline" # offline, online
 EXP="disjoint" # disjoint, blurry10, blurry30
 MEM_SIZE=850 # cifar10: k={200, 500, 1000}, mnist: k=500, cifar100: k=2,000, imagenet: k=20,000, cub200:k={340}
-TRANS="" # multiple choices: cutmix, cutout, randaug, autoaug
+TRANS="cutmix autoaug" # multiple choices: cutmix, cutout, randaug, autoaug
 
 N_WORKER=4
 JOINT_ACC=0.0 # training all the tasks at once.
@@ -36,19 +36,13 @@ PRIOR_PRECISION=10
 PRIOR_MEAN=0.0
 KL_DIV_WEIGHT=5e-6
 PRIOR_CONVERSION_FUNCTION="none" # {"sqrt", exp, mul2, mul3, mul4, mul8, log, pow2, pow3, div, none}
-KLD_WEIGHT_ATTE="cutmix autoaug" # True, False
+KLD_WEIGHT_ATTE="" # True, False
 
 # Checkpoint
 CHECKPOINT="./cub_split/checkpoint_imagenet_mnvi.ckpt" # path to the checkpoint?
 CHECKPOINT_INCLUDE="[*]"
 CHECKPOINT_EXCLUDE="[_model.module.resnet.fc.weight,_model.module.resnet.fc.mult_noise_variance,_model.module.resnet.fc.bias,_model.module.resnet.fc.bias_variance]"
 CHECKPOINT_MODE="resume_from_latest" # "resume_from_latest", "resume_from_best"
-
-if [ -d "tensorboard" ]; then
-    rm -rf tensorboard
-    echo "Remove the tensorboard dir"
-fi
-
 
 
 if [ "$DATASET" == "mnist" ]; then
@@ -91,7 +85,7 @@ elif [ "$DATASET" == "cub200" ]; then
     TOTAL=50000 N_VAL=0 N_CLASS=170 TOPK=1  # what is TOTAL? how many data points do we have in the training set of the original dataset? 
     MODEL_NAME="resnet18"
     N_WORKERS=4
-    N_EPOCH=20; BATCHSIZE=64; LR=0.1 OPT_NAME="sgd" SCHED_NAME="none"  #N_EPOCH=256; BATCHSIZE=16; LR=0.05 OPT_NAME="sgd" SCHED_NAME="cos"
+    N_EPOCH=5; BATCHSIZE=64; LR=0.1 OPT_NAME="sgd" SCHED_NAME="none"  #N_EPOCH=256; BATCHSIZE=16; LR=0.05 OPT_NAME="sgd" SCHED_NAME="cos"
     if [ "${MODE_LIST[0]}" == "joint" ]; then
         N_INIT_CLS=170 N_CLS_A_TASK=100 N_TASKS=1
     elif [[ "$EXP" == *"blurry"* ]]; then
@@ -116,7 +110,7 @@ else
     exit 1
 fi
 
-CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=0 python main.py --mode $MODE --mem_manage $MEM_MANAGE --exp_name $EXP \
+CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=3 CUBLAS_WORKSPACE_CONFIG=:16:8 python main.py --mode $MODE --mem_manage $MEM_MANAGE --exp_name $EXP \
 --dataset $DATASET \
 --stream_env $STREAM  $INIT_MODEL $INIT_OPT --topk $TOPK \
 --n_tasks $N_TASKS --n_cls_a_task $N_CLS_A_TASK --n_init_cls $N_INIT_CLS \

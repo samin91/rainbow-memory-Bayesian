@@ -4,6 +4,7 @@ Copyright 2021-present NAVER Corp.
 GPLv3
 """
 # When we make a new one, we should inherit the Finetune class.
+import time
 import logging
 import os
 import random
@@ -30,7 +31,7 @@ import pdb
 
 logger = logging.getLogger()
 # log = f"tensorboard/Run_{}" ???
-writer = SummaryWriter(f"test/run_{1}")
+#writer = SummaryWriter(f"test/run_{1}")
 
 
 class ICaRLNet(nn.Module):
@@ -102,6 +103,10 @@ class Finetune:
 
         self.uncert_metric = kwargs["uncert_metric"]
         # self.cub200_mnvi = kwargs["cub200_mnview"]
+
+        # running time of the samplers
+        self.total_time_bayesian = 0
+        self.total_time_montecarlo = 0
         #-------------------------------------------
 
     def set_current_dataset(self, train_datalist, test_datalist):
@@ -350,7 +355,7 @@ class Finetune:
             eval_dict = self.evaluation(
                 test_loader=test_loader, criterion=self.criterion
             )
-
+            '''
             writer.add_scalar(f"task{cur_iter}/train/loss", train_loss, epoch)
             writer.add_scalar(f"task{cur_iter}/train/acc", train_acc, epoch)
             writer.add_scalar(f"task{cur_iter}/test/loss", eval_dict["avg_loss"], epoch)
@@ -358,7 +363,7 @@ class Finetune:
             writer.add_scalar(
                 f"task{cur_iter}/train/lr", self.optimizer.param_groups[0]["lr"], epoch
             )
-
+            '''
             logger.info(
                 f"Task {cur_iter} | Epoch {epoch+1}/{n_epoch} | train_loss {train_loss:.4f} | train_acc {train_acc:.4f} | "
                 f"test_loss {eval_dict['avg_loss']:.4f} | test_acc {eval_dict['avg_acc']:.4f} | "
@@ -612,13 +617,23 @@ class Finetune:
         if self.bayesian:
             '''ToDo: compute time
             '''
+            start_time_1 = time.time()
             self._Bayesian(samples)
+            end_time_1 = time.time()
+            running_time_1 = end_time_1 - start_time_1
+            logger.info("Function _Bayesian took {:.2f} seconds to run".format(running_time_1))
+            self.total_time_bayesian += running_time_1
+            
         else:
             '''ToDo: compute time
             ''' 
             # RM original: ensmebling of 12 passes of augmented images
+            start_time_2 = time.time()
             self.montecarlo(samples, uncert_metric=self.uncert_metric)
-
+            end_time_2 = time.time()
+            running_time_2 = end_time_2 - start_time_2
+            logger.info("Function montecarlo took {:.2f} seconds to run".format(running_time_2))
+            self.total_time_montecarlo += running_time_2
 
         sample_df = pd.DataFrame(samples)
         ret = []

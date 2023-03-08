@@ -8,7 +8,7 @@ from methods.finetune import Finetune
 from utils.train_utils import select_model, select_optimizer
 
 logger = logging.getLogger()
-writer = SummaryWriter(f"test/run_{1}")
+#writer = SummaryWriter(f"test/run_{1}")
 
 
 class GDumb(Finetune):
@@ -74,7 +74,8 @@ class GDumb(Finetune):
             eval_dict = self.evaluation(
                 test_loader=test_loader, criterion=self.criterion
             )
-
+            
+            '''
             writer.add_scalar(f"task{cur_iter}/train/loss", train_loss, epoch)
             writer.add_scalar(f"task{cur_iter}/train_acc", train_acc, epoch)
             writer.add_scalar(f"task{cur_iter}/test/loss", eval_dict["avg_loss"], epoch)
@@ -82,6 +83,7 @@ class GDumb(Finetune):
             writer.add_scalar(
                 f"task{cur_iter}/train/lr", self.optimizer.param_groups[0]["lr"], epoch
             )
+            '''
 
             logger.info(
                 f"Task {cur_iter} | Epoch {epoch+1}/{n_epoch} | train_loss {train_loss:.4f} | train_acc {train_acc:.4f} | "

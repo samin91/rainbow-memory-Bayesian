@@ -16,7 +16,7 @@ from utils.data_loader import cutmix_data
 from utils.train_utils import select_optimizer
 
 logger = logging.getLogger()
-writer = SummaryWriter(f"test/run_{1}")
+#writer = SummaryWriter(f"test/run_{1}")
 
 
 class ICaRLNet(nn.Module):
@@ -266,7 +266,8 @@ class ICaRL(Finetune):
                 self.optimizer.step()
 
             num_batches = len(train_loader)
-
+            
+            '''
             writer.add_scalar(
                 f"task{cur_iter}/train/loss", total_loss / num_batches, epoch
             )
@@ -279,7 +280,7 @@ class ICaRL(Finetune):
             writer.add_scalar(
                 f"task{cur_iter}/train/lr", self.optimizer.param_groups[0]["lr"], epoch
             )
-
+            '''
             train_loss = total_loss / num_batches
             train_cls_loss = total_cls_loss / num_batches
             train_dist_loss = total_dist_loss / num_batches

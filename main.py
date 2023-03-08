@@ -50,7 +50,7 @@ def main():
     logger.addHandler(fileHandler)
 
     # Tensorboard
-    writer = SummaryWriter(f"test/run_{1}")
+    #writer = SummaryWriter(f"test/run_{1}")
 
     # Device
     # add an argument the device args.device="cuda:0" or "cpu"
@@ -138,6 +138,13 @@ def main():
     
     # Main Loop - cur_iter is not the best name for the current task
     for cur_iter in range(args.n_tasks):
+        # ----------------------------------------
+        # TENSRBOARD
+        # ---------------------------------------
+        f = 'tensorboard/Run_2/'+'task_' + str(cur_iter)
+        writer = SummaryWriter(f)
+
+
         if args.mode == "joint" and cur_iter > 0:
             return
 
@@ -180,6 +187,7 @@ def main():
                 n_epoch=args.n_epoch,
                 batch_size=args.batchsize,
                 n_worker=args.n_worker,
+                writer=writer
             )
             if args.mode == "joint":
                 logger.info(f"joint accuracy: {task_acc}")
@@ -192,6 +200,7 @@ def main():
                 n_epoch=1,
                 batch_size=args.batchsize,
                 n_worker=args.n_worker,
+                writer=writer
             )
 
             method.update_memory(cur_iter)
@@ -205,6 +214,7 @@ def main():
                 n_epoch=args.n_epoch,
                 batch_size=args.batchsize,
                 n_worker=args.n_worker,
+                writer=writer
             )
 
             method.after_task(cur_iter)

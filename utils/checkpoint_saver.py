@@ -42,7 +42,7 @@ class CheckpointSaver:
             name = name.split(".", maxsplit=3)[-1]  # added by mar-ret
             if name in own_state:
                 #print("Loading {} into module".format(name))  # added by mar-ret
-                if isinstance(param, nn.Parameter):
+                if isinstance(param, nn.Parameter): # only weight and mult_noise_variance are nn.Parameter. The rest are part of the state_dict but are only buffers
                     # backwards compatibility for serialized parameters
                     param = param.data
                 try:

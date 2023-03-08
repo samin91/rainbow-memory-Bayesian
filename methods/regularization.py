@@ -14,7 +14,7 @@ from methods.finetune import Finetune
 from utils.data_loader import cutmix_data
 
 logger = logging.getLogger()
-writer = SummaryWriter(f"test/run_{1}")
+#writer = SummaryWriter(f"test/run_{1}")
 
 
 class L2(Finetune):
@@ -99,7 +99,7 @@ class L2(Finetune):
             eval_dict = self.evaluation(
                 test_loader=test_loader, criterion=self.criterion
             )
-
+            '''
             writer.add_scalar(f"task{cur_iter}/train/loss", train_loss, epoch)
             writer.add_scalar(f"task{cur_iter}/train/acc", train_acc, epoch)
             writer.add_scalar(f"task{cur_iter}/test/loss", eval_dict["avg_loss"], epoch)
@@ -107,6 +107,7 @@ class L2(Finetune):
             writer.add_scalar(
                 f"task{cur_iter}/train/lr", self.optimizer.param_groups[0]["lr"], epoch
             )
+            '''
             logger.info(
                 f"Task {cur_iter} | Epoch {epoch+1}/{n_epoch} | train_loss {train_loss:.4f} | train_acc {train_acc:.4f} | "
                 f"test_loss {eval_dict['avg_loss']:.4f} | test_acc {eval_dict['avg_acc']:.4f} | "

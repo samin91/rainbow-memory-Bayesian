@@ -20,7 +20,7 @@ from utils.train_utils import select_model
 from torch.utils.tensorboard import SummaryWriter
 
 logger = logging.getLogger()
-writer = SummaryWriter(f"test/run_{1}")
+#writer = SummaryWriter(f"test/run_{1}")
 
 
 class BiasCorrectionLayer(nn.Module):
@@ -184,7 +184,7 @@ class BiasCorrection(Finetune):
             eval_dict = self.evaluation(
                 test_loader=test_loader, criterion=self.criterion
             )
-
+            '''
             writer.add_scalar(f"task{cur_iter}/train/loss", train_loss, epoch)
             writer.add_scalar(
                 f"task{cur_iter}/train/lr", self.optimizer.param_groups[0]["lr"], epoch
@@ -195,6 +195,7 @@ class BiasCorrection(Finetune):
                 f"Task {cur_iter} | Epoch {epoch+1}/{n_epoch} | train_loss {train_loss:.4f} | "
                 f"test_acc {eval_dict['avg_acc']:.4f} | train_lr {self.optimizer.param_groups[0]['lr']:.4f}"
             )
+            '''
 
         if cur_iter == 0:
             n_sample = self.valid_size // len(self.exposed_classes)

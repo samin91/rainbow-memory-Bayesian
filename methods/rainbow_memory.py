@@ -19,7 +19,7 @@ import pdb
 
 logger = logging.getLogger()
 # log = f"tensorboard/Run_{}" ???
-writer = SummaryWriter(f"test/run_{1}")
+#writer = SummaryWriter(f"test/run_{1}")
 
 
 def cycle(iterable):
@@ -44,7 +44,7 @@ class RM(Finetune):
         if kwargs["mem_manage"] == "default":
             self.mem_manage = "uncertainty"
 
-    def train(self, cur_iter, n_epoch, batch_size, n_worker, n_passes=0):
+    def train(self, cur_iter, n_epoch, batch_size, n_worker, writer, n_passes=0):
         if len(self.memory_list) > 0:
             mem_dataset = ImageDataset(
                 pd.DataFrame(self.memory_list),
@@ -107,6 +107,7 @@ class RM(Finetune):
             eval_dict = self.evaluation(
                 test_loader=test_loader, criterion=self.criterion
             )
+            '''
             writer.add_scalar(f"task{cur_iter}/train/loss", train_loss, epoch)
             writer.add_scalar(f"task{cur_iter}/train/acc", train_acc, epoch)
             # add a plot for total loss and xe loss for the Bayesian case
@@ -115,7 +116,14 @@ class RM(Finetune):
             writer.add_scalar(
                 f"task{cur_iter}/train/lr", self.optimizer.param_groups[0]["lr"], epoch
             )
-
+            
+            '''
+            writer.add_scalar('Accuracy/train', train_acc, epoch)
+            writer.add_scalar("Loss/train", train_loss, epoch)
+           
+            writer.add_scalar('Accuracy/valid-',eval_dict["avg_acc"], epoch)
+            writer.add_scalar('Loss/valid-', eval_dict["avg_loss"] , epoch)
+           
             logger.info(
                 f"Task {cur_iter} | Epoch {epoch+1}/{n_epoch} | train_loss {train_loss:.4f} | train_acc {train_acc:.4f} | "
                 f"test_loss {eval_dict['avg_loss']:.4f} | test_acc {eval_dict['avg_acc']:.4f} | "

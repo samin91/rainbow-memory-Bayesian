@@ -245,7 +245,7 @@ def base_parser():
 
     parser.add_argument(
         "--kld_weight_atte",
-        action="store_true",
+        action="store_false",
         help="Use KLD weight for attention of the prior effect",   
     )
 
