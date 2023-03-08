@@ -176,6 +176,7 @@ class ImageResNetMNCL(nn.Module):
         self._mnv_init = opt["mnv_init"]
         self._prior_precision = opt["prior_precision"]
         self._prior_mean = opt["prior_mean"]
+        self._kl_div_weight = opt['model_kl_div_weight']
         # calculate num_classes
         '''
         self.num_classes = head_size(args.split_targets)
@@ -227,10 +228,13 @@ class ImageResNetMNCL(nn.Module):
         # to adapt to RM, we need to replaece the fully connected layer
         # it is a sequential object
         #self.fc = FinalBlock(opt=opt, in_channels=512 * block.expansion)
+        # prior_precision=1e0, prior_mean=0.0, mnv_init=-3.0
+        
         self.fc = varprop.LinearMNCL(512 * block.expansion, 
-                                    self.opt["num_classes"],
-                                    mnv_init=opt.mnv_init, 
-                                    prior_precision=opt.prior_precision)
+                                    self.opt["num_classes"], 
+                                    prior_precision=opt.prior_precision,
+                                    prior_mean=opt.prior_mean,
+                                    mnv_init=opt.mnv_init)
         # what about initializing the fc layre inside the final block? 
         finitialize(self.modules(), small=False)
         
@@ -518,16 +522,17 @@ class ImageResNetMNCL(nn.Module):
     
     # Extra functions that only apply to the Bayesian model in CL scenario
     def kl_div(self):
-        kl_div_weight = self.opt["model_kl_div_weight"]
+        #kl_div_weight = self.opt["model_kl_div_weight"]
         kl = 0.0
         for module in self.modules():
             if isinstance(module, (varprop.LinearMNCL, varprop.Conv2dMNCL)):
                 kl += module.kl_div()
         # here we need to multiply the kl with the weight as well: self._kl_div_weight
 
-        return kl*kl_div_weight
+        return kl*self._kl_div_weight
 
     def save_prior_and_weights(self, prior_conv_func):
+            
             for module in self.modules():
                 if isinstance(module, (varprop.LinearMNCL, varprop.Conv2dMNCL)):
                     module.save_prior_and_weights(prior_conv_func)
@@ -538,6 +543,7 @@ class ImageResNetMNCL(nn.Module):
                 module.update_prior()
     
     def update_prior_and_weights_from_saved(self):
+            
             for module in self.modules():
                 if isinstance(module, (varprop.LinearMNCL, varprop.Conv2dMNCL)):
                     module.update_prior_and_weights_from_saved()

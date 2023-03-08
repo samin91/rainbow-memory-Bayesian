@@ -29,7 +29,7 @@ import pdb
 
 logger = logging.getLogger()
 # log = f"tensorboard/Run_{}" ???
-writer = SummaryWriter(f"tensorboard/run_{1}")
+writer = SummaryWriter(f"test/run_{1}")
 
 
 class ICaRLNet(nn.Module):
@@ -88,6 +88,7 @@ class Finetune:
             self.mem_manage = "random"
         # Bayeian Model --------------------------------
         self.bayesian = kwargs["bayesian_model"]
+        self.kld_weight_atte = kwargs["kld_weight_atte"]
         self.kwargs = kwargs
         # here we create the model instance
         self.model = select_model(self.model_name, self.dataset, kwargs["n_init_cls"], self.kwargs)
@@ -103,6 +104,7 @@ class Finetune:
         #-------------------------------------------
 
     def set_current_dataset(self, train_datalist, test_datalist):
+        
         random.shuffle(train_datalist)
         self.prev_streamed_list = self.streamed_list
         self.streamed_list = train_datalist
@@ -128,15 +130,18 @@ class Finetune:
         out_features = self.model.fc.out_features
         # To care for the case of decreasing head? I think this should be increasing head
         new_out_features = max(out_features, self.num_learning_class)
+        
         if init_model:
-            # init model parameters in every iteration
+            # initialize model parameters in every iteration
             logger.info("Reset model parameters")
             self.model = select_model(self.model_name, self.dataset, new_out_features, self.kwargs)
         else:
             #pdb.set_trace()
             if bayesian is True:
                 # what happens to the pre-trained weights?
-                self.model.fc = varprop.LinearMNCL(in_features, new_out_features)
+                #default values of the layer: prior_precision=1e0, prior_mean=0.0, mnv_init=-3.0
+                
+                self.model.fc = varprop.LinearMNCL(in_features, new_out_features, self.kwargs['prior_precision'], self.kwargs['prior_mean'], self.kwargs['mnv_init'])
                 cub200_mnvi.finitialize([self.model.fc], small=False)
                 # does this weight initialization take place automatically? - since the model is defined once before the task training
                 #, I do not think so. I prefer to initialize the classifier weights again
@@ -148,8 +153,20 @@ class Finetune:
                 if self.model.fc.bias is not None:
                     nn.init.constant_(self.model.fc.bias, 0)
                 '''
+                # Set up kld weight
+                if self.kld_weight_atte is True: 
+                    if cur_iter==0:
+                        self.model._kl_div_weight = 1e-8
+                    elif cur_iter==1:
+                        self.model._kl_div_weight = 2e-8
+                    elif cur_iter==2:
+                        self.model._kl_div_weight = 4e-8
+                    elif cur_iter==3:
+                        self.model._kl_div_weight = 8e-8
+                    else:
+                        pass
             else:
-                self.model.fc = nn.Linear(in_features, new_out_features)
+                    self.model.fc = nn.Linear(in_features, new_out_features)
 
         
         '''ToDO: Check if this all the layers of the Bayesian model and 
@@ -204,15 +221,13 @@ class Finetune:
                 logger.info(f"Update the growing memory over {num_class} classes by {self.mem_manage}")
                 candidates = self.streamed_list 
                 if self.mem_manage == "random":
-                        self.memory_list.extend(self.rnd_sampling(candidates, self.coreset_size))
+                        self.memory_list.extend(self.rnd_sampling(candidates, self.coreset_size)) # memory grows, hence using .extend()
                 elif self.mem_manage == "uncertainty":
                         if cur_iter == 0:
                             # how does this work for a Bayesian model? the same as normal models
-                            self.memory_list = self.equal_class_sampling(
-                                candidates, num_class
-                            )
+                            self.memory_list.extend(self.equal_class_sampling(candidates, num_class)) # memory grows, hence using .extend()
                         else:
-                            self.memory_list = self.uncertainty_sampling(candidates, num_class, cur_iter)
+                            self.memory_list.extend(self.uncertainty_sampling(candidates, num_class, cur_iter)) # memory grows, hence using .extend()
             # -------------------------------------------
             # FIXED MEMORY
             # -------------------------------------------
@@ -250,7 +265,8 @@ class Finetune:
                         logger.error("Not implemented memory management")
                         raise NotImplementedError
             # -----------------------------------------------------------
-            assert len(self.memory_list) <= self.memory_size
+            if self.expanding_memory is False: # this assertion needs to be checked only for the fixed memory case
+                assert len(self.memory_list) <= self.memory_size
             logger.info("Memory statistic")
             memory_df = pd.DataFrame(self.memory_list)
             logger.info(f"\n{memory_df.klass.value_counts(sort=True)}")
@@ -788,8 +804,12 @@ class Finetune:
         Args:
             prior_conv_func (function): function to convert the posterior width.
         """
+        
+        # check the state dictionary
         self.model.save_prior_and_weights(prior_conv_func)
+        # check the state dictioanry
         self.model.update_prior_and_weights_from_saved()
+        # check the state dictionary
 
     def checkpoint_saver_loader(self, ):
         #pdb.set_trace()

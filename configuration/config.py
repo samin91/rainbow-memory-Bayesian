@@ -243,6 +243,12 @@ def base_parser():
         choices=["resume_from_latest", "resume_from_best"]
     )
 
+    parser.add_argument(
+        "--kld_weight_atte",
+        action="store_true",
+        help="Use KLD weight for attention of the prior effect",   
+    )
+
 
    
     # Debug
