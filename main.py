@@ -10,7 +10,7 @@ from collections import defaultdict
 
 import numpy as np
 import torch
-#torch.use_deterministic_algorithms(True, warn_only=True)
+torch.use_deterministic_algorithms(True, warn_only=True)
 #torch.autograd.set_detect_anomaly(True)
 from randaugment import RandAugment
 from torch import nn

@@ -12,6 +12,7 @@ import PIL
 import numpy as np
 import pandas as pd
 import torch
+torch.use_deterministic_algorithms(True, warn_only=True)
 import torch.nn as nn
 from randaugment.randaugment import RandAugment
 from torch.utils.data import DataLoader
@@ -153,18 +154,20 @@ class Finetune:
                 if self.model.fc.bias is not None:
                     nn.init.constant_(self.model.fc.bias, 0)
                 '''
+
                 # Set up kld weight
                 if self.kld_weight_atte is True: 
                     if cur_iter==0:
-                        self.model._kl_div_weight = 1e-8
+                        self.model._kl_div_weight = 2e-9
                     elif cur_iter==1:
-                        self.model._kl_div_weight = 2e-8
+                        self.model._kl_div_weight = 3e-9
                     elif cur_iter==2:
-                        self.model._kl_div_weight = 4e-8
+                        self.model._kl_div_weight = 4e-9
                     elif cur_iter==3:
-                        self.model._kl_div_weight = 8e-8
+                        self.model._kl_div_weight = 7e-7
                     else:
                         pass
+                logger.info(f"kld weight is {self.model._kl_div_weight}")
             else:
                     self.model.fc = nn.Linear(in_features, new_out_features)
 

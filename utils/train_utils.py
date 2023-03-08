@@ -3,6 +3,8 @@ rainbow-memory
 Copyright 2021-present NAVER Corp.
 GPLv3
 """
+import torch
+torch.use_deterministic_algorithms(True, warn_only=True)
 import torch_optimizer
 from easydict import EasyDict as edict
 from torch import optim

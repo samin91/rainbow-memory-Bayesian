@@ -3,6 +3,7 @@ from __future__ import print_function
 from tkinter import N
 
 import torch
+torch.use_deterministic_algorithms(True, warn_only=True)
 torch.autograd.set_detect_anomaly(True)
 #torch.use_deterministic_algorithms(True)
 import torch.nn as nn
