@@ -64,7 +64,7 @@ def base_parser():
     parser.add_argument(
         "--model_name", type=str, default="resnet32", help="[resnet18, resnet32]"
     )
-    parser.add_argument("--pretrain", action="store_true", help="pretrain model or not")
+    parser.add_argument("--pretrain", action="store_false", help="pretrain model or not")
 
     # Train
     parser.add_argument("--opt_name", type=str, default="sgd", help="[adam, sgd]")
@@ -172,6 +172,8 @@ def base_parser():
         action="store_true",
         help="Use Bayesian model for uncertainty estimation",
     )
+
+
     # Bayesian arguments 
     parser.add_argument(
         "--min_variance",
@@ -205,6 +207,8 @@ def base_parser():
         help="KL divergence weight for Bayesian model",
     )
 
+
+
     parser.add_argument(
         "--prior_conv_function",
         type=str,
@@ -213,8 +217,7 @@ def base_parser():
         help="Prior conversion function for Bayesian model",
     )
 
-    # checkpoint argments
-
+   
     parser.add_argument(
         "--checkpoint_path",
         type=strings.as_string_or_none,
@@ -248,6 +251,13 @@ def base_parser():
         action="store_false",
         help="Use KLD weight for attention of the prior effect",   
     )
+
+    parser.add_argument(
+        "--informed_prior",
+        action="store_false",
+        help="update the prior of task_i with the posterior of task_i-1",   
+    )
+
 
 
    

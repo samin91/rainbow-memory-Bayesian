@@ -3,6 +3,7 @@ rainbow-memory
 Copyright 2021-present NAVER Corp.
 GPLv3
 """
+import datetime
 import logging.config
 import os
 import random
@@ -23,6 +24,7 @@ from utils.data_loader import get_test_datalist, get_statistics
 from utils.data_loader import get_train_datalist
 from utils.method_manager import select_method
 from utils.bayes_utils import configure_prior_conversion_function
+from losses.probabilistic_loss import configure_model_and_loss
 
 # add the bayesian losses
 from losses import ClassificationLoss, ClassificationLossVI, LBClassificationLossVI
@@ -31,12 +33,13 @@ import pdb
 def main():
     
     args = config.base_parser()
-
+    # time stamp 
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     # Save file name
     tr_names = ""
     for trans in args.transforms:
         tr_names += "_" + trans
-    save_path = f"{args.dataset}/{args.mode}_{args.mem_manage}_{args.stream_env}_msz{args.memory_size}_rnd{args.rnd_seed}{tr_names}"
+    save_path = f"{args.dataset}/{timestamp}_{args.mode}_{args.mem_manage}_{args.stream_env}_msz{args.memory_size}_rnd{args.rnd_seed}{tr_names}"
 
     # Logger
     logging.config.fileConfig("./configuration/logging.conf")
@@ -59,13 +62,7 @@ def main():
     else:
         device = torch.device("cpu")
     logger.info(f"Set the device ({device})")
-    ''' We can write it like this as well
-    if 'parallel' in args.device:
-        device = 'parallel'
-    else:
-        device = torch.device(args.device)
-    logger.info(f"Set the device ({device})")
-    '''
+  
 
     # Fix the random seeds
     # https://hoya012.github.io/blog/reproducible_pytorch/
@@ -111,7 +108,7 @@ def main():
     # Loss Function
     if args.bayesian_model is True:
         logger.info(f"[1] Training a Bayesian model)")
-        criterion = ClassificationLossVI()
+        criterion = configure_model_and_loss()
     else:
         criterion = nn.CrossEntropyLoss(reduction="mean")
     
@@ -123,12 +120,8 @@ def main():
     logger.info(f"[1] Select a CIL method ({args.mode})")
 
 
-
-    # Load the checkpoint
-    '''ToDo:
-        change the arguments so we can easily change the availability of checkpoining 
-    '''
-    if args.checkpoint_path is not None and args.bayesian_model is True:
+    # Load the checkpoint or pretrained model
+    if args.pretrain is True and args.bayesian_model is True:
         method.checkpoint_saver_loader()
 
 
@@ -141,7 +134,7 @@ def main():
         # ----------------------------------------
         # TENSRBOARD
         # ---------------------------------------
-        f = 'tensorboard/Run_2/'+'task_' + str(cur_iter)
+        f = 'tensorboard/Run_10/'+'task_' + str(cur_iter)
         writer = SummaryWriter(f)
 
 
@@ -222,8 +215,8 @@ def main():
         logger.info("[2-4] Update the information for the current task")
         
         method.after_task(cur_iter)
-        
-        if args.bayesian_model is True:
+        pdb.set_trace()
+        if args.bayesian_model is True and args.informed_prior is True:
             logger.info("[2-4] Update the prior for the current task: posterior -> prior")
             #prior_conversion = args.prior_conv_func
             logger.info(f"Prior conversion function: {args.prior_conv_function}")

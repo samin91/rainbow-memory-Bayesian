@@ -29,6 +29,8 @@ from models import varprop
 from models import cub200_mnvi
 import pdb
 
+
+
 logger = logging.getLogger()
 # log = f"tensorboard/Run_{}" ???
 #writer = SummaryWriter(f"test/run_{1}")
@@ -92,7 +94,8 @@ class Finetune:
         self.bayesian = kwargs["bayesian_model"]
         self.kld_weight_atte = kwargs["kld_weight_atte"]
         self.kwargs = kwargs
-        # here we create the model instance
+        # here we create the model instance and pass it to the device
+        
         self.model = select_model(self.model_name, self.dataset, kwargs["n_init_cls"], self.kwargs)
         self.model = self.model.to(self.device)
         self.criterion = self.criterion.to(self.device)
@@ -142,13 +145,14 @@ class Finetune:
             logger.info("Reset model parameters")
             self.model = select_model(self.model_name, self.dataset, new_out_features, self.kwargs)
         else:
-            #pdb.set_trace()
+            
             if bayesian is True:
                 # what happens to the pre-trained weights?
                 #default values of the layer: prior_precision=1e0, prior_mean=0.0, mnv_init=-3.0
                 
                 self.model.fc = varprop.LinearMNCL(in_features, new_out_features, self.kwargs['prior_precision'], self.kwargs['prior_mean'], self.kwargs['mnv_init'])
                 cub200_mnvi.finitialize([self.model.fc], small=False)
+                #self.model.fc = self.model.fc.to(self.device)
                 # does this weight initialization take place automatically? - since the model is defined once before the task training
                 #, I do not think so. I prefer to initialize the classifier weights again
                 ''' Another way to intialize fc for each task
@@ -175,7 +179,7 @@ class Finetune:
                 logger.info(f"kld weight is {self.model._kl_div_weight}")
             else:
                     self.model.fc = nn.Linear(in_features, new_out_features)
-
+                    #self.model.fc = self.model.fc.to(self.device)
         
         '''ToDO: Check if this all the layers of the Bayesian model and 
                 all the parameters are considered?
@@ -614,6 +618,7 @@ class Finetune:
         # ---------------------------------------------------------------------
         # Add majority voting based uncertainty values to the samples dictionary
         # ---------------------------------------------------------------------
+        
         if self.bayesian:
             '''ToDo: compute time
             '''
@@ -625,8 +630,6 @@ class Finetune:
             self.total_time_bayesian += running_time_1
             
         else:
-            '''ToDo: compute time
-            ''' 
             # RM original: ensmebling of 12 passes of augmented images
             start_time_2 = time.time()
             self.montecarlo(samples, uncert_metric=self.uncert_metric)

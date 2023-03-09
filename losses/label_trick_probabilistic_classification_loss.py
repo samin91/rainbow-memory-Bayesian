@@ -58,20 +58,28 @@ class ClassificationLossVI(nn.Module):
             #                                 Labels trick
             # -------------------------------------------------------------------------------
             if self.label_trick is False or self.coreset_kld==1:
-            #if self.label_trick is False or self.coreset_training is True: 
+                # if self.label_trick is False or self.coreset_training is True: 
                 # prediction and label type? float?? float16 easily overflows?
                 # using autocast should be the norm
                 # wrapping up the loss comutation in with torch.cuda.amp.autocast()
                 # https://discuss.pytorch.org/t/cross-entropy-loss-outputting-nan/123002/4
                 
-                # check the dtype of prediction tensor 
+                # check the dtype of prediction tensor
+
+                torch.use_deterministic_algorithms(False) 
                 loss = F.cross_entropy(prediction, target_expanded, reduction='mean')
+                torch.use_deterministic_algorithms(True, warn_only=True)
+
                 kl_div = output_dict['kl_div']
                 losses['total_loss'] = loss + kl_div()
             
                 with torch.no_grad():
                   p = F.softmax(prediction, dim=1).mean(dim=2)
+
+                  torch.use_deterministic_algorithms(False)
                   losses['xe'] =  F.cross_entropy(prediction, target_expanded, reduction='mean')
+                  torch.use_deterministic_algorithms(True, warn_only=True)
+
                   acc_k = _accuracy(p, target, topk=self._topk)
                   for acc, k in zip(acc_k, self._topk):
                       losses["top%i" % k] = acc
@@ -121,7 +129,9 @@ class ClassificationLossVI(nn.Module):
                 # Compute loss on the CPU
                 prediction_cpu = prediction[:, ordered_task_targets, :].cpu() #grad_fn=<ToCopyBackward0>
                 labels_cpu = labels_expanded.cpu() # does not contain device='cuda:0'
+                torch.use_deterministic_algorithms(False)
                 loss_label_trick_cpu = F.cross_entropy(prediction_cpu, labels_cpu, reduction='mean') #grad_fn=<NllLoss2DBackward0>
+                torch.use_deterministic_algorithms(True, warn_only=True)
                 loss_label_trick = loss_label_trick_cpu.to(self.device)
 
                 '''
@@ -140,7 +150,9 @@ class ClassificationLossVI(nn.Module):
             
                     prediction_cpu = prediction[:, ordered_task_targets, :].cpu() #grad_fn=<ToCopyBackward0>
                     labels_cpu = labels_expanded.cpu() # does not contain device='cuda:0'
+                    torch.use_deterministic_algorithms(False)
                     loss_label_trick_cpu = F.cross_entropy(prediction_cpu, labels_cpu, reduction='mean') #grad_fn=<NllLoss2DBackward0>
+                    torch.use_deterministic_algorithms(True, warn_only=True)
                     losses['xe'] = loss_label_trick_cpu.to(self.device)
 
                     '''

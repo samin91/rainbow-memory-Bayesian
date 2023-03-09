@@ -3,6 +3,7 @@ rainbow-memory
 Copyright 2021-present NAVER Corp.
 GPLv3
 """
+import time
 import logging
 import random
 
@@ -12,7 +13,7 @@ import torch
 torch.use_deterministic_algorithms(True, warn_only=True)
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-
+from utils.early_stopping import EarlyStopping
 from methods.finetune import Finetune
 from utils.data_loader import cutmix_data, ImageDataset
 import pdb
@@ -79,11 +80,18 @@ class RM(Finetune):
         # TRAIN
         best_acc = 0.0
         eval_dict = dict()
-        '''ToDo: should we also put the loss function on the device?
-        '''
-        self.model = self.model.to(self.device)
-        for epoch in range(n_epoch):
+        early_stopping = EarlyStopping(patience=10, verbose=True)
 
+        '''ToDo: should we also put the loss function on the device? hmmmm
+        '''
+        
+        self.model = self.model.to(self.device)
+        
+        for epoch in range(n_epoch):
+            train_start=0
+            infer_start=0
+            train_end=0
+            infer_end=0
             # initialize for each task
             # optimizer.param_groups is a python list, which contains a dictionary.
             if epoch <= 0:  # Warm start of 1 epoch
@@ -100,13 +108,21 @@ class RM(Finetune):
                 if self.scheduler is not None:
                     self.scheduler.step()
 
+            train_start = time.time()
             train_loss, train_acc = self._train(train_loader=train_loader, memory_loader=memory_loader,
                                                 optimizer=self.optimizer, criterion=self.criterion)
-            
+            train_end = time.time() - train_start
+
             # EVAL - testing over all the test sets seen so far
+            infer_start = time.time()
             eval_dict = self.evaluation(
                 test_loader=test_loader, criterion=self.criterion
             )
+            infer_end = time.time() - infer_start
+
+            # ------------------------------------------------------------
+            # Tensorboard
+            # ------------------------------------------------------------
             '''
             writer.add_scalar(f"task{cur_iter}/train/loss", train_loss, epoch)
             writer.add_scalar(f"task{cur_iter}/train/acc", train_acc, epoch)
@@ -116,21 +132,34 @@ class RM(Finetune):
             writer.add_scalar(
                 f"task{cur_iter}/train/lr", self.optimizer.param_groups[0]["lr"], epoch
             )
-            
             '''
             writer.add_scalar('Accuracy/train', train_acc, epoch)
             writer.add_scalar("Loss/train", train_loss, epoch)
-           
             writer.add_scalar('Accuracy/valid-',eval_dict["avg_acc"], epoch)
             writer.add_scalar('Loss/valid-', eval_dict["avg_loss"] , epoch)
-           
+            # -------------------------------------------------------------------
+            # Logging to console
+            # -------------------------------------------------------------------
             logger.info(
                 f"Task {cur_iter} | Epoch {epoch+1}/{n_epoch} | train_loss {train_loss:.4f} | train_acc {train_acc:.4f} | "
-                f"test_loss {eval_dict['avg_loss']:.4f} | test_acc {eval_dict['avg_acc']:.4f} | "
+                f"test_loss {eval_dict['avg_loss']:.4f} | test_acc {eval_dict['avg_acc']:.4f} | training time {train_end:.2f} | inference time {infer_end:.2f} |"
                 f"lr {self.optimizer.param_groups[0]['lr']:.4f}"
             )
+            # --------------------------------------------------------------------
             # they report best eval accuracy and not the last one! 
+            # --------------------------------------------------------------------
             best_acc = max(best_acc, eval_dict["avg_acc"])
+
+            # --------------------------------------------------------------------
+            # Early stopping
+            # --------------------------------------------------------------------
+            # early_stopping needs the validation loss to check if it has decresed, 
+            # and if it has, it will make a checkpoint of the current model
+            early_stopping(eval_dict["avg_loss"], self.model)
+        
+            if early_stopping.early_stop:
+                print(f"Early stopping for task_{cur_iter} on epoch {epoch+1}")
+                break
 
         return best_acc, eval_dict
 
@@ -157,10 +186,20 @@ class RM(Finetune):
                     logit, labels_b
                 )
         else:
+            
             if self.bayesian:
+                # measure forward pass time
+                #t_start = time.time() 
                 logit_dict = self.model(x)
+                #t_end = time.time() - t_start
+                # logger.info(f'forward pass time: {t_end:.2f} s')
+
                 # criterion is the probabilistic loss class
+                #t_s = time.time()
                 losses_dict = criterion(logit_dict, y)
+                #t_e = time.time() - t_s
+                #logger.info(f'loss time: {t_e:.2f} s')
+                
                 loss = losses_dict['total_loss']
                 logit = losses_dict['prediction'] # Shape: torch.Size([10, 10, 64]) --> (batch_size, num_classes, samples)
                 # change the shape of the logit to be (batch_size, num_classes)

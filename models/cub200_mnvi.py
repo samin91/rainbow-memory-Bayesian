@@ -368,8 +368,8 @@ class ImageResNetMNCL(nn.Module):
         '''
         # Remove max_pooling because the implementation of 
         # this layer is non-deterministic 
-        x = self.maxpool(*x)
-        #x = self.avgpool2d(*x)
+        #x = self.maxpool(*x)
+        x = self.avgpool2d(*x)
         
         # Layer_1
         # check nan
@@ -529,11 +529,9 @@ class ImageResNetMNCL(nn.Module):
             if isinstance(module, (varprop.LinearMNCL, varprop.Conv2dMNCL)):
                 kl += module.kl_div()
         # here we need to multiply the kl with the weight as well: self._kl_div_weight
-
         return kl*self._kl_div_weight
 
     def save_prior_and_weights(self, prior_conv_func):
-            
             for module in self.modules():
                 if isinstance(module, (varprop.LinearMNCL, varprop.Conv2dMNCL)):
                     module.save_prior_and_weights(prior_conv_func)
@@ -544,7 +542,6 @@ class ImageResNetMNCL(nn.Module):
                 module.update_prior()
     
     def update_prior_and_weights_from_saved(self):
-            
             for module in self.modules():
                 if isinstance(module, (varprop.LinearMNCL, varprop.Conv2dMNCL)):
                     module.update_prior_and_weights_from_saved()

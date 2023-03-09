@@ -20,7 +20,7 @@ def select_optimizer(opt_name, lr, model, sched_name="cos"):
     elif opt_name == "sgd":
         #  momentum=0.9, nesterov=True, weight_decay=1e-4
         opt = optim.SGD(
-            model.parameters(), lr=lr, momentum=0, nesterov=False, weight_decay=0
+            model.parameters(), lr=lr, momentum=0.9, nesterov=True, weight_decay=0
         )
     else:
         raise NotImplementedError("Please select the opt_name [adam, sgd]")

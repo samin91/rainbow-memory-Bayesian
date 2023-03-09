@@ -8,21 +8,6 @@ from torch.nn import functional as F
 import pdb
 
 
-def _accuracy(output, target, topk=(1,)):
-    #pdb.set_trace()
-    maxk = max(topk) # maxk = 3
-    batch_size = target.size(0)
-    _, pred = output.topk(maxk, 1, True, True) # pred: torch.Size([10, 3])
-    pred = pred.t() # give the indexes of the top 3 predictions
-    correct = pred.eq(target.view(1, -1)) # view --> torch.Size([1, 10]) , correct.shape: torch.Size([3, 10])
-    res = []
-    for k in topk:
-        correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True) # number of correct prediction for top k
-        #print(f'correct_{k}: {correct_k}')
-        res.append(correct_k.mul_(100.0 / batch_size))
-    return res
-
-
 class ClassificationLossVI(nn.Module):
     def __init__(self, topk=3):
         super(ClassificationLossVI, self).__init__()
@@ -63,21 +48,16 @@ class ClassificationLossVI(nn.Module):
             losses['prediction'] = prediction
             # this needs to be either computed on the cpu or reimplemented in cuda
             # Implement the following yourself
-            # loss = F.cross_entropy(prediction, target_expanded, reduction='mean')
+            #loss = F.cross_entropy(prediction, target_expanded, reduction='mean')
             p = F.softmax(prediction, dim=1).mean(dim=2)
             loss = - torch.log(p[range(p.shape[0]), target]).mean()
-             
+            
             if torch.isnan(loss):
                 print('loss is nan')
+            losses['xe'] = loss
             kl_div = output_dict['kl_div']
             losses['total_loss'] = loss + kl_div()
-            with torch.no_grad():
-                p = F.softmax(prediction, dim=1).mean(dim=2)
-                # shape: torch.Size([10, 10]) --> (batch_size, num_classes)
-                losses['xe'] =  F.cross_entropy(prediction, target_expanded, reduction='mean')
-                acc_k = _accuracy(p, target, topk=self._topk)
-                for acc, k in zip(acc_k, self._topk):
-                    losses["top%i" % k] = acc         
+     
         else:
             with torch.no_grad():
                 normals =  normal_dist.sample()
@@ -87,9 +67,8 @@ class ClassificationLossVI(nn.Module):
                 p = F.softmax(prediction, dim=1).mean(dim=2)
                 losses = {}
                 kl_div = output_dict['kl_div']
-                losses['total_loss'] = - torch.log(p[range(p.shape[0]), target]).mean() + kl_div()
-                losses['xe'] = - torch.log(p[range(p.shape[0]), target]).mean()
-                acc_k = _accuracy(p, target, topk=self._topk)
-                for acc, k in zip(acc_k, self._topk):
-                    losses["top%i" % k] = acc
+                _xe = - torch.log(p[range(p.shape[0]), target]).mean()
+                losses['total_loss'] = _xe + kl_div()
+                losses['xe'] = _xe
+          
         return losses
