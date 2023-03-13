@@ -10,7 +10,7 @@ import random
 import numpy as np
 import pandas as pd
 import torch
-torch.use_deterministic_algorithms(True, warn_only=True)
+#torch.use_deterministic_algorithms(True, warn_only=True)
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from utils.early_stopping import EarlyStopping
@@ -37,7 +37,7 @@ class RM(Finetune):
         super().__init__(
             criterion, device, train_transform, test_transform, n_classes, **kwargs
         )
-
+        pdb.set_trace()
         self.batch_size = kwargs["batchsize"]
         self.n_worker = kwargs["n_worker"]
         self.exp_env = kwargs["stream_env"]
@@ -155,17 +155,18 @@ class RM(Finetune):
             # --------------------------------------------------------------------
             # early_stopping needs the validation loss to check if it has decresed, 
             # and if it has, it will make a checkpoint of the current model
-            early_stopping(eval_dict["avg_loss"], self.model)
-        
-            if early_stopping.early_stop:
-                print(f"Early stopping for task_{cur_iter} on epoch {epoch+1}")
-                break
+            if self.early_stopping is True:
+                early_stopping(eval_dict["avg_loss"], self.model)
+            
+                if early_stopping.early_stop:
+                    print(f"Early stopping for task_{cur_iter} on epoch {epoch+1}")
+                    break
 
         return best_acc, eval_dict
 
     def update_model(self, x, y, criterion, optimizer):
         # chekc the label type, output of the bayesian model
-        
+       
         optimizer.zero_grad()
 
         do_cutmix = self.cutmix and np.random.rand(1) < 0.5
@@ -207,7 +208,7 @@ class RM(Finetune):
             else:
                 logit = self.model(x)
                 loss = criterion(logit, y)
-
+        
         # calculate the number of correct predictions per batch for the bayesian model as well here
         _, preds = logit.topk(self.topk, 1, True, True)
 
@@ -235,7 +236,7 @@ class RM(Finetune):
             data_iterator = train_loader
         else:
             raise NotImplementedError("None of dataloder is valid")
-
+        b = 0
         for data in data_iterator:
             if len(data) == 2:
                 stream_data, mem_data = data
@@ -248,13 +249,16 @@ class RM(Finetune):
             x = x.to(self.device)
             y = y.to(self.device)
             # this is equivalent to the step code in the test repo
+            a = time.time()
             l, c, d = self.update_model(x, y, criterion, optimizer)
+            b += time.time() - a
+            
             # Compute the moving averages - equivalent to MovingAverage in the test repo
             total_loss += l
             correct += c
             num_data += d
 
-        
+        print('forward and backward pass time: ', b, 's')
         if train_loader is not None:
             n_batches = len(train_loader)
         else:

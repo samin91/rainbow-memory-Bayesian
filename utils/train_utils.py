@@ -4,12 +4,12 @@ Copyright 2021-present NAVER Corp.
 GPLv3
 """
 import torch
-torch.use_deterministic_algorithms(True, warn_only=True)
+#torch.use_deterministic_algorithms(True, warn_only=True)
 import torch_optimizer
 from easydict import EasyDict as edict
 from torch import optim
 
-from models import cub200_mnvi, mnist, cifar, imagenet, cub200
+from models import cub200_mnvi, mnist, cifar, imagenet, cub200, cifar_mnvi, imagenet_mnvi
 import pdb
 
 def select_optimizer(opt_name, lr, model, sched_name="cos"):
@@ -20,7 +20,7 @@ def select_optimizer(opt_name, lr, model, sched_name="cos"):
     elif opt_name == "sgd":
         #  momentum=0.9, nesterov=True, weight_decay=1e-4
         opt = optim.SGD(
-            model.parameters(), lr=lr, momentum=0.9, nesterov=True, weight_decay=0
+            model.parameters(), lr=lr, momentum=0.9, nesterov=True, weight_decay=1e-4
         )
     else:
         raise NotImplementedError("Please select the opt_name [adam, sgd]")
@@ -34,7 +34,7 @@ def select_optimizer(opt_name, lr, model, sched_name="cos"):
         scheduler = optim.lr_scheduler.ExponentialLR(opt, 1 / 1.1, last_epoch=-1)
     elif sched_name == "multistep":
         scheduler = optim.lr_scheduler.MultiStepLR(
-            opt, milestones=[30, 60, 80, 90], gamma=0.1
+            opt, milestones=[60, 120, 160], gamma=0.2
         )
     elif sched_name == "none":
         scheduler = None
@@ -82,7 +82,7 @@ def select_model(model_name, dataset, num_classes=None, kwargs=None):
         if "mnist" in dataset:
             model_class = getattr(mnist, "MLP")
         elif "cifar" in dataset:
-            model_class = getattr(cifar, "ResNet")
+            model_class = getattr(cifar_mnvi, "ResNet")
         elif "imagenet" in dataset:
             model_class = getattr(imagenet, "ResNet")
         elif "cub200" in dataset:

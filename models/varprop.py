@@ -4,7 +4,7 @@ from itertools import islice
 import math
 from numpy import NaN
 import torch
-torch.use_deterministic_algorithms(True, warn_only=True)
+#torch.use_deterministic_algorithms(True, warn_only=True)
 import torch.nn as nn
 from torch.nn.parameter import Parameter
 from torch.nn import functional as F

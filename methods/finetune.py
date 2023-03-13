@@ -13,7 +13,7 @@ import PIL
 import numpy as np
 import pandas as pd
 import torch
-torch.use_deterministic_algorithms(True, warn_only=True)
+#torch.use_deterministic_algorithms(True, warn_only=True)
 import torch.nn as nn
 from randaugment.randaugment import RandAugment
 from torch.utils.data import DataLoader
@@ -110,6 +110,8 @@ class Finetune:
         # running time of the samplers
         self.total_time_bayesian = 0
         self.total_time_montecarlo = 0
+
+        self.early_stopping = kwargs["early_stopping"]
         #-------------------------------------------
 
     def set_current_dataset(self, train_datalist, test_datalist):

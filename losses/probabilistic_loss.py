@@ -1,7 +1,6 @@
 import numpy as np
 import torch
-torch.use_deterministic_algorithms(True, warn_only=True)
-#(True, warn_only=True)
+#torch.use_deterministic_algorithms(True, warn_only=True)
 from torch import nn
 from .probabilistic_classification_losses import ClassificationLossVI
 

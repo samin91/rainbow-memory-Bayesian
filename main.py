@@ -11,8 +11,8 @@ from collections import defaultdict
 
 import numpy as np
 import torch
-torch.use_deterministic_algorithms(True, warn_only=True)
-#torch.autograd.set_detect_anomaly(True)
+#torch.use_deterministic_algorithms(True, warn_only=True)
+
 from randaugment import RandAugment
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
@@ -27,7 +27,7 @@ from utils.bayes_utils import configure_prior_conversion_function
 from losses.probabilistic_loss import configure_model_and_loss
 
 # add the bayesian losses
-from losses import ClassificationLoss, ClassificationLossVI, LBClassificationLossVI
+from losses import ClassificationLoss, ClassificationLossVI
 import pdb
 
 def main():
@@ -70,8 +70,8 @@ def main():
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     # add more seeding? maybe it will be necessary for the bayesian model
-    torch.cuda.manual_seed_all(args.rnd_seed)
-    torch.cuda.manual_seed(args.rnd_seed)
+    #torch.cuda.manual_seed_all(args.rnd_seed)
+    #torch.cuda.manual_seed(args.rnd_seed)
     np.random.seed(args.rnd_seed)
     random.seed(args.rnd_seed)
 
@@ -134,7 +134,7 @@ def main():
         # ----------------------------------------
         # TENSRBOARD
         # ---------------------------------------
-        f = 'tensorboard/Run_10/'+'task_' + str(cur_iter)
+        f = 'tensorboard/test/'+'task_' + str(cur_iter)
         writer = SummaryWriter(f)
 
 
@@ -215,7 +215,7 @@ def main():
         logger.info("[2-4] Update the information for the current task")
         
         method.after_task(cur_iter)
-        pdb.set_trace()
+       
         if args.bayesian_model is True and args.informed_prior is True:
             logger.info("[2-4] Update the prior for the current task: posterior -> prior")
             #prior_conversion = args.prior_conv_func

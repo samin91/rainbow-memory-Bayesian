@@ -155,7 +155,7 @@ def base_parser():
      # Coreset size of the expanding memory
     parser.add_argument(
         "--expanding_memory",
-        action="store_true",
+        action="store_false",
         help="Growing memory replaces the fixed memory when our dataset has few smaples per task",
     )
     # Coreset size for the expanding memory
@@ -169,7 +169,7 @@ def base_parser():
     #Bayesian mode
     parser.add_argument(
         "--bayesian_model",
-        action="store_true",
+        action="store_false",
         help="Use Bayesian model for uncertainty estimation",
     )
 
@@ -256,6 +256,12 @@ def base_parser():
         "--informed_prior",
         action="store_false",
         help="update the prior of task_i with the posterior of task_i-1",   
+    )
+
+    parser.add_argument(
+        "--early_stopping",
+        action="store_false",
+        help="early stopping on the validation set",   
     )
 
 

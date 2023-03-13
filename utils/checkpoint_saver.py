@@ -5,7 +5,7 @@ import re
 import logging
 import numpy as np
 import torch
-torch.use_deterministic_algorithms(True, warn_only=True)
+#torch.use_deterministic_algorithms(True, warn_only=True)
 from torch import nn
 from utils import strings
 
