@@ -37,7 +37,7 @@ class RM(Finetune):
         super().__init__(
             criterion, device, train_transform, test_transform, n_classes, **kwargs
         )
-        pdb.set_trace()
+        
         self.batch_size = kwargs["batchsize"]
         self.n_worker = kwargs["n_worker"]
         self.exp_env = kwargs["stream_env"]
@@ -46,6 +46,7 @@ class RM(Finetune):
             self.mem_manage = "uncertainty"
 
     def train(self, cur_iter, n_epoch, batch_size, n_worker, writer, n_passes=0):
+        
         if len(self.memory_list) > 0:
             mem_dataset = ImageDataset(
                 pd.DataFrame(self.memory_list),
@@ -57,6 +58,7 @@ class RM(Finetune):
                 shuffle=True,
                 batch_size=(batch_size // 2),
                 num_workers=n_worker,
+                pin_memory=True,
             )
             stream_batch_size = batch_size - batch_size // 2
         else:
@@ -166,7 +168,7 @@ class RM(Finetune):
 
     def update_model(self, x, y, criterion, optimizer):
         # chekc the label type, output of the bayesian model
-       
+        
         optimizer.zero_grad()
 
         do_cutmix = self.cutmix and np.random.rand(1) < 0.5
@@ -225,6 +227,7 @@ class RM(Finetune):
     def _train(
         self, train_loader, memory_loader, optimizer, criterion
     ):
+        
         total_loss, correct, num_data = 0.0, 0.0, 0.0
 
         self.model.train()
@@ -236,8 +239,8 @@ class RM(Finetune):
             data_iterator = train_loader
         else:
             raise NotImplementedError("None of dataloder is valid")
-        b = 0
-        for data in data_iterator:
+        
+        for i, data in enumerate(data_iterator):
             if len(data) == 2:
                 stream_data, mem_data = data
                 x = torch.cat([stream_data["image"], mem_data["image"]])
@@ -248,11 +251,45 @@ class RM(Finetune):
 
             x = x.to(self.device)
             y = y.to(self.device)
-            # this is equivalent to the step code in the test repo
-            a = time.time()
-            l, c, d = self.update_model(x, y, criterion, optimizer)
-            b += time.time() - a
             
+            # measure each operation time of the forward pass for one batch
+            # ---------------------------------------------------
+            if i==0:
+                # Conv1
+                conv1_time, output = self.measure_time(self.model.conv1, x)
+                print('conv1_time', conv1_time)
+                # BatchNorm1
+                bn1_time, output = self.measure_time(self.model.bn1, output)
+                print('bn1_time', bn1_time)
+                # ReLU
+                relu_time, output = self.measure_time(self.model.relu, output)
+                print('relu_time', relu_time)
+                # MaxPool
+                maxpool_time, output = self.measure_time(self.model.maxpool, output)
+                print('maxpool_time', maxpool_time)
+                # Layer1
+                layer1_time, output = self.measure_time(self.model.layer1, output)
+                print('layer1_time', layer1_time)
+                # Layer2
+                layer2_time, output = self.measure_time(self.model.layer2 , output)
+                print('layer2_time', layer2_time)
+                # Layer3
+                layer3_time, output = self.measure_time(self.model.layer3, output)
+                print('layer3_time', layer3_time)
+                # Layer4
+                layer4_time, output = self.measure_time(self.model.layer4, output)
+                print('layer4_time', layer4_time)
+                # AvgPool
+                avgpool_time, output = self.measure_time(self.model.avgpool, output )
+                print('avgpool_time ', avgpool_time)
+                output = torch.flatten(output, 1)
+                # Fc
+                fc_time, _ = self.measure_time(self.model.fc, output)
+                print('fc-time ', fc_time)
+                
+            # ------------------------------------------------------
+            # this is equivalent to the step code in the test repo
+            l, c, d = self.update_model(x, y, criterion, optimizer)
             # Compute the moving averages - equivalent to MovingAverage in the test repo
             total_loss += l
             correct += c
