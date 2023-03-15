@@ -112,6 +112,11 @@ class Finetune:
         self.total_time_montecarlo = 0
 
         self.early_stopping = kwargs["early_stopping"]
+
+
+        # cuda events for measuring CUDA time? 
+        self.start_event = torch.cuda.Event(enable_timing=True)
+        self.end_event = torch.cuda.Event(enable_timing=True)
         #-------------------------------------------
 
     def set_current_dataset(self, train_datalist, test_datalist):
@@ -190,15 +195,9 @@ class Finetune:
         self.params = {
             n: p for n, p in list(self.model.named_parameters())[:-2] if p.requires_grad
         }  # For regularzation methods
-
-
         self.model = self.model.to(self.device)
 
         # gives us the possibility to reinitialize the optimizer and scheduler
-        '''ToDo: check if this is true - I think it is becuase there is no other code to initalize the class
-            instance. Also, since we are doing continual learning, it makes sense to reinitialize the optimizer
-            and the scheduler for each task
-        '''
         if init_opt:
             logger.info("Reset the optimizer and scheduler states")
             self.optimizer, self.scheduler = select_optimizer(
@@ -306,6 +305,7 @@ class Finetune:
                 batch_size=batch_size,
                 num_workers=n_worker,
                 drop_last=True,
+                pin_memory=True,
             )
 
         if test_list is not None:
@@ -315,7 +315,7 @@ class Finetune:
                 transform=self.test_transform,
             )
             test_loader = DataLoader(
-                test_dataset, shuffle=False, batch_size=batch_size, num_workers=n_worker
+                test_dataset, shuffle=False, batch_size=batch_size, num_workers=n_worker, pin_memory=True
             )
 
         return train_loader, test_loader
@@ -937,3 +937,21 @@ class Finetune:
         # Does it make sense to use majority votig for a bayesian model?
         sample["uncertainty"] = (1 - vote_counter.max() / cand_length).item() # out of 12 predictions per sample, how many times the most voted class was not predicted
         
+
+    def measure_time(self, model, input):
+            # Record the start time
+            self.start_event.record()
+
+            # Forward pass
+            output = model(input)
+
+            # Record the end time
+            self.end_event.record()
+
+            # Wait for the events to complete
+            torch.cuda.synchronize()
+
+            # Compute the elapsed time
+            elapsed_time = self.start_event.elapsed_time(self.end_event)
+
+            return elapsed_time, output
