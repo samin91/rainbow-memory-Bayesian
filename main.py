@@ -11,7 +11,7 @@ from collections import defaultdict
 
 import numpy as np
 import torch
-#torch.use_deterministic_algorithms(True, warn_only=True)
+torch.use_deterministic_algorithms(True, warn_only=True)
 
 from randaugment import RandAugment
 from torch import nn
@@ -44,8 +44,8 @@ def main():
     # Logger
     logging.config.fileConfig("./configuration/logging.conf")
     logger = logging.getLogger()
-    os.makedirs(f"logs/{args.dataset}", exist_ok=True)
-    fileHandler = logging.FileHandler("logs/{}.log".format(save_path), mode="w")
+    os.makedirs(f"/visinf/projects/shamidi/RM_original/logs/{args.dataset}", exist_ok=True)
+    fileHandler = logging.FileHandler("/visinf/projects/shamidi/RM_original/logs/{}.log".format(save_path), mode="w")
     formatter = logging.Formatter(
         "[%(levelname)s] %(filename)s:%(lineno)d > %(message)s"
     )
@@ -70,8 +70,8 @@ def main():
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     # add more seeding? maybe it will be necessary for the bayesian model
-    #torch.cuda.manual_seed_all(args.rnd_seed)
-    #torch.cuda.manual_seed(args.rnd_seed)
+    torch.cuda.manual_seed_all(args.rnd_seed)
+    torch.cuda.manual_seed(args.rnd_seed)
     np.random.seed(args.rnd_seed)
     random.seed(args.rnd_seed)
 
@@ -134,9 +134,9 @@ def main():
         # ----------------------------------------
         # TENSRBOARD
         # ---------------------------------------
-        f = 'tensorboard/test/'+'task_' + str(cur_iter)
+        f = 'tensorboard/Run_10_node10_1/'+'task_' + str(cur_iter)
         writer = SummaryWriter(f)
-
+        
 
         if args.mode == "joint" and cur_iter > 0:
             return

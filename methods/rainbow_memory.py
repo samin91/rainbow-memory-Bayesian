@@ -10,7 +10,7 @@ import random
 import numpy as np
 import pandas as pd
 import torch
-#torch.use_deterministic_algorithms(True, warn_only=True)
+torch.use_deterministic_algorithms(True, warn_only=True)
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from utils.early_stopping import EarlyStopping
@@ -251,9 +251,14 @@ class RM(Finetune):
 
             x = x.to(self.device)
             y = y.to(self.device)
-            
+
+            '''
+            all_model, _ = self.measure_time(self.model, x)
+            print('all_model', all_model)
+            '''
             # measure each operation time of the forward pass for one batch
             # ---------------------------------------------------
+            '''
             if i==0:
                 # Conv1
                 conv1_time, output = self.measure_time(self.model.conv1, x)
@@ -286,7 +291,7 @@ class RM(Finetune):
                 # Fc
                 fc_time, _ = self.measure_time(self.model.fc, output)
                 print('fc-time ', fc_time)
-                
+            '''
             # ------------------------------------------------------
             # this is equivalent to the step code in the test repo
             l, c, d = self.update_model(x, y, criterion, optimizer)
@@ -295,7 +300,6 @@ class RM(Finetune):
             correct += c
             num_data += d
 
-        print('forward and backward pass time: ', b, 's')
         if train_loader is not None:
             n_batches = len(train_loader)
         else:

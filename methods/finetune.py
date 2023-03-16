@@ -13,7 +13,7 @@ import PIL
 import numpy as np
 import pandas as pd
 import torch
-#torch.use_deterministic_algorithms(True, warn_only=True)
+torch.use_deterministic_algorithms(True, warn_only=True)
 import torch.nn as nn
 from randaugment.randaugment import RandAugment
 from torch.utils.data import DataLoader
@@ -97,6 +97,13 @@ class Finetune:
         # here we create the model instance and pass it to the device
         
         self.model = select_model(self.model_name, self.dataset, kwargs["n_init_cls"], self.kwargs)
+
+        # ------------------------------------------
+        # dtype
+        # ------------------------------------------
+        for name, param in self.model.named_parameters():
+            print(f"{name}: {param.dtype}")
+                  
         self.model = self.model.to(self.device)
         self.criterion = self.criterion.to(self.device)
 

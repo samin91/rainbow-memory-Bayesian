@@ -1,5 +1,5 @@
 import torch
-#torch.use_deterministic_algorithms(True, warn_only=True)
+torch.use_deterministic_algorithms(True, warn_only=True)
 
 def configure_prior_conversion_function(prior_conv_func_str):
     if prior_conv_func_str == "sqrt":

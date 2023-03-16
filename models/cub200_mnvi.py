@@ -1,6 +1,6 @@
 import logging
 import torch
-#torch.use_deterministic_algorithms(True, warn_only=True)
+torch.use_deterministic_algorithms(True, warn_only=True)
 import torch.nn as nn
 
 from models.layers import ConvBlock, InitialBlock, FinalBlock
@@ -8,7 +8,6 @@ from models.layers import ConvBlock, InitialBlock, FinalBlock
 from models import varprop
 import torch.nn.functional as F
 import pdb
-#torch.use_deterministic_algorithms(True, warn_only=True)
 torch.autograd.set_detect_anomaly(True)
 logger = logging.getLogger()
 
@@ -368,8 +367,8 @@ class ImageResNetMNCL(nn.Module):
         '''
         # Remove max_pooling because the implementation of 
         # this layer is non-deterministic 
-        x = self.maxpool(*x)
-        #x = self.avgpool2d(*x)
+        #x = self.maxpool(*x)
+        x = self.avgpool2d(*x)
         
         # Layer_1
         # check nan
