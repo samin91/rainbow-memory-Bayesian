@@ -3,9 +3,9 @@
 # CIL CONFIG
 MODE="rm" # joint, gdumb, icarl, rm, ewc, rwalk, bic   # here I can add the Bayesian method? althoug the Bayesian method is more of a architecture than a method! the loss maybe is! 
 # "default": If you want to use the default memory management method.
-MEM_MANAGE="uncertainty" # default, random, reservoir, uncertainty, prototype.
-RND_SEED=3
-DATASET="cub200" # mnist, cifar10, cifar100, imagenet, cub200
+MEM_MANAGE="random" # default, random, reservoir, uncertainty, prototype.
+RND_SEED=1
+DATASET="cifar10" # mnist, cifar10, cifar100, imagenet, cub200
 STREAM="offline" # offline, online
 EXP="disjoint" # disjoint, blurry10, blurry30
 MEM_SIZE=500 # cifar10: k={200, 500, 1000}, mnist: k=500, cifar100: k=2,000, imagenet: k=20,000, cub200:k={340}
@@ -32,9 +32,9 @@ CORSET_SIZE=50
 BAYESIAN="" # True, False
 MEAN_VARIANCE=1e-5
 MNV_INIT=-3.0
-PRIOR_PRECISION=10
+PRIOR_PRECISION=1e4
 PRIOR_MEAN=0.0
-KL_DIV_WEIGHT=5e-7
+KL_DIV_WEIGHT=5e-8
 PRIOR_CONVERSION_FUNCTION="none" # {"sqrt", exp, mul2, mul3, mul4, mul8, log, pow2, pow3, div, none}
 KLD_WEIGHT_ATTE="" # True, False
 INFORMED_PRIOR="" # True, False
@@ -64,7 +64,7 @@ if [ "$DATASET" == "mnist" ]; then
 elif [ "$DATASET" == "cifar10" ]; then
     TOTAL=50000 N_VAL=250 N_CLASS=10 TOPK=1
     MODEL_NAME="resnet18"
-    N_EPOCH=256; BATCHSIZE=512; LR=0.05 OPT_NAME="sgd" SCHED_NAME="cos"
+    N_EPOCH=200; BATCHSIZE=1024; LR=0.05 OPT_NAME="sgd" SCHED_NAME="multistep"
     if [ "${MODE_LIST[0]}" == "joint" ]; then
         N_INIT_CLS=10 N_CLS_A_TASK=10 N_TASKS=1
     elif [[ "$EXP" == *"blurry"* ]]; then
@@ -76,7 +76,7 @@ elif [ "$DATASET" == "cifar10" ]; then
 elif [ "$DATASET" == "cifar100" ]; then
     TOTAL=50000 N_VAL=0 N_CLASS=100 TOPK=1
     MODEL_NAME="resnet18" #resnet32
-    N_EPOCH=256; BATCHSIZE=128; LR=0.01 OPT_NAME="sgd" SCHED_NAME="multistep"
+    N_EPOCH=100; BATCHSIZE=128; LR=0.01 OPT_NAME="sgd" SCHED_NAME="multistep"
     if [ "${MODE_LIST[0]}" == "joint" ]; then
         N_INIT_CLS=100 N_CLS_A_TASK=100 N_TASKS=1
     elif [[ "$EXP" == *"blurry"* ]]; then
@@ -88,7 +88,7 @@ elif [ "$DATASET" == "cifar100" ]; then
 elif [ "$DATASET" == "cub200" ]; then
     TOTAL=50000 N_VAL=0 N_CLASS=170 TOPK=1  # what is TOTAL? how many data points do we have in the training set of the original dataset? 
     MODEL_NAME="resnet18"
-    N_EPOCH=150; BATCHSIZE=64; LR=0.05 OPT_NAME="sgd" SCHED_NAME="none"  #N_EPOCH=256; BATCHSIZE=16; LR=0.05 OPT_NAME="sgd" SCHED_NAME="cos"
+    N_EPOCH=200; BATCHSIZE=64; LR=0.05 OPT_NAME="sgd" SCHED_NAME="none"  #N_EPOCH=256; BATCHSIZE=16; LR=0.05 OPT_NAME="sgd" SCHED_NAME="cos"
     if [ "${MODE_LIST[0]}" == "joint" ]; then
         N_INIT_CLS=170 N_CLS_A_TASK=100 N_TASKS=1
     elif [[ "$EXP" == *"blurry"* ]]; then

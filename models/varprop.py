@@ -235,6 +235,7 @@ class Conv2dMNCL(_ConvNd):
             self.register_buffer("bias_copy", torch.zeros_like(self.bias))
 
     def forward(self, inputs_mean, inputs_variance):
+        
         outputs_mean = F.conv2d(
             inputs_mean, self.weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
         outputs_variance = F.conv2d(
@@ -406,6 +407,7 @@ class MaxPool2d(nn.Module):
         return output
 
     def forward(self, inputs_mean, inputs_variance):
+        
         inputs_mean = F.pad(inputs_mean, (self._padding, self._padding))
         inputs_variance = F.pad(inputs_variance, (self._padding, self._padding))
         outputs_mean, indices = self.maxpool(inputs_mean)

@@ -8,7 +8,7 @@ import logging.config
 import os
 import random
 from collections import defaultdict
-
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 torch.use_deterministic_algorithms(True, warn_only=True)
@@ -44,8 +44,8 @@ def main():
     # Logger
     logging.config.fileConfig("./configuration/logging.conf")
     logger = logging.getLogger()
-    os.makedirs(f"/visinf/projects/shamidi/RM_original/logs/{args.dataset}", exist_ok=True)
-    fileHandler = logging.FileHandler("/visinf/projects/shamidi/RM_original/logs/{}.log".format(save_path), mode="w")
+    os.makedirs(f"/visinf/projects/shamidi/RM_modified/logs/{args.dataset}", exist_ok=True)
+    fileHandler = logging.FileHandler("/visinf/projects/shamidi/RM_modified/logs/{}.log".format(save_path), mode="w")
     formatter = logging.Formatter(
         "[%(levelname)s] %(filename)s:%(lineno)d > %(message)s"
     )
@@ -69,7 +69,7 @@ def main():
     torch.manual_seed(args.rnd_seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-    # add more seeding? maybe it will be necessary for the bayesian model
+    # Add more seeding? maybe it will be necessary for the bayesian model
     torch.cuda.manual_seed_all(args.rnd_seed)
     torch.cuda.manual_seed(args.rnd_seed)
     np.random.seed(args.rnd_seed)
@@ -134,7 +134,7 @@ def main():
         # ----------------------------------------
         # TENSRBOARD
         # ---------------------------------------
-        f = 'tensorboard/Run_10_node10_1/'+'task_' + str(cur_iter)
+        f = 'tensorboard/test/'+'task_' + str(cur_iter)
         writer = SummaryWriter(f)
         
 
@@ -213,9 +213,8 @@ def main():
             method.after_task(cur_iter)
 
         logger.info("[2-4] Update the information for the current task")
-        
         method.after_task(cur_iter)
-       
+        
         if args.bayesian_model is True and args.informed_prior is True:
             logger.info("[2-4] Update the prior for the current task: posterior -> prior")
             #prior_conversion = args.prior_conv_func
@@ -227,16 +226,39 @@ def main():
         # task_records['cls_acc'][k][j] = break down j-class accuracy from 'task_acc'
         task_records["cls_acc"].append(eval_dict["cls_acc"])
 
+        # Save checkpoint per task
+        directory = f"checkpoints/{args.dataset}/Run_1/task_{cur_iter}/"
+        os.makedirs(directory, exist_ok=True)
+        method.save_checkpoint(directory, task_records, store_as_best=False, store_prefixes="total_loss")
+        
+
         # Notify to NSML
         logger.info("[2-5] Report task result")
         writer.add_scalar("Metrics/TaskAcc", task_acc, cur_iter)
     # I remember there was an error running this line of code
-    #np.save(f"results/{save_path}.npy", task_records["task_acc"])
 
+   
+    if os.path.exists(f"results/{args.dataset}") is False:
+        os.makedirs(f"results/{args.dataset}", exist_ok=True)
+    np.save(f"results/{save_path}.npy", task_records["cls_acc"])
+    
+  
+    # Loop through the sublists and plot each one
+    for i, sublist in enumerate(task_records["cls_acc"]):
+        plt.subplot(1, len(task_records["cls_acc"]), i+1)
+        plt.plot(range(len(sublist)), sublist)
+        plt.title(f"List {i+1}")
+        plt.xlabel("Classes")
+        plt.ylabel("Accuracy per class")
+
+    # Show the plot
+    plt.tight_layout()
+    plt.show()
+    
+   
     # Accuracy (A)
     A_avg = np.mean(task_records["task_acc"])
     A_last = task_records["task_acc"][args.n_tasks - 1]
-
     # Forgetting (F) - Read on the formula of Forgetting and understand it - check this code
     acc_arr = np.array(task_records["cls_acc"])
     # cls_acc = (k, j), acc for j at k

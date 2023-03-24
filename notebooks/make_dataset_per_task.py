@@ -18,8 +18,8 @@ test = pd.read_json('/visinf/home/shamidi/Projects/My_scripts/SMALL_CUB_test.jso
 '''
 Change the variables `rnd_seed` and `num_tasks` 
 '''
-rnd_seed = 3 # random seed 
-num_tasks = 17 # the number of tasks. 
+rnd_seed = 1 # random seed 
+num_tasks = 10 # the number of tasks. 
 np.random.seed(rnd_seed)
 
 klass = train.klass.unique()

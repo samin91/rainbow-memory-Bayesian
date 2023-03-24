@@ -157,12 +157,14 @@ class RM(Finetune):
             # --------------------------------------------------------------------
             # early_stopping needs the validation loss to check if it has decresed, 
             # and if it has, it will make a checkpoint of the current model
-            if self.early_stopping is True:
-                early_stopping(eval_dict["avg_loss"], self.model)
-            
-                if early_stopping.early_stop:
-                    print(f"Early stopping for task_{cur_iter} on epoch {epoch+1}")
-                    break
+
+            if cur_iter >=2: # for the first two tasks we train for longer 
+                if self.early_stopping is True:
+                    early_stopping(eval_dict["avg_loss"], self.model)
+                
+                    if early_stopping.early_stop:
+                        print(f"Early stopping for task_{cur_iter} on epoch {epoch+1}")
+                        break
 
         return best_acc, eval_dict
 
@@ -170,12 +172,17 @@ class RM(Finetune):
         # chekc the label type, output of the bayesian model
         
         optimizer.zero_grad()
-
         do_cutmix = self.cutmix and np.random.rand(1) < 0.5
         if do_cutmix:
             x, labels_a, labels_b, lam = cutmix_data(x=x, y=y, alpha=1.0)
+            '''
+            x = x.double()
+            labels_a = labels_a.double()
+            labels_b = labels_b.double()
+            '''
             # take care of the output of the bayesian model and its probabilistic loss
             if self.bayesian:
+                #self.model.double()
                 logit_dict = self.model(x)
 
                 loss = lam * criterion(logit_dict, labels_a)['total_loss'] + (1 - lam) * criterion(
@@ -184,6 +191,7 @@ class RM(Finetune):
                 logit = criterion(logit_dict, labels_a)['prediction']
                 logit = logit.mean(dim=2)
             else:
+                #self.model.double()
                 logit = self.model(x)
                 loss = lam * criterion(logit, labels_a) + (1 - lam) * criterion(
                     logit, labels_b
@@ -192,7 +200,8 @@ class RM(Finetune):
             
             if self.bayesian:
                 # measure forward pass time
-                #t_start = time.time() 
+                #t_start = time.time()
+                #self.model.double()
                 logit_dict = self.model(x)
                 #t_end = time.time() - t_start
                 # logger.info(f'forward pass time: {t_end:.2f} s')
@@ -208,6 +217,7 @@ class RM(Finetune):
                 # change the shape of the logit to be (batch_size, num_classes)
                 logit = logit.mean(dim=2)
             else:
+                #self.model.double()
                 logit = self.model(x)
                 loss = criterion(logit, y)
         
@@ -248,6 +258,9 @@ class RM(Finetune):
             else:
                 x = data["image"]
                 y = data["label"]
+            # set to double
+            #x = x.double().to(self.device)
+            #y = y.double().to(self.device)
 
             x = x.to(self.device)
             y = y.to(self.device)

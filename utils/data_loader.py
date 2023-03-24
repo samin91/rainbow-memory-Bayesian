@@ -34,7 +34,7 @@ class ImageDataset(Dataset):
         img_name = self.data_frame.iloc[idx]["file_name"]
         label = self.data_frame.iloc[idx].get("label", -1)
 
-        img_path = os.path.join("/fastdata/shamidi/dataset", self.dataset, img_name)
+        img_path = os.path.join("dataset", self.dataset, img_name)
         image = PIL.Image.open(img_path).convert("RGB")
         if self.transform:
             image = self.transform(image)

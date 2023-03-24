@@ -78,6 +78,7 @@ def select_model(model_name, dataset, num_classes=None, kwargs=None):
             "model_kl_div_weight": kwargs['model_kl_div_weight'],
         }
     )
+    
     if kwargs['bayesian_model'] == True:
         if "mnist" in dataset:
             model_class = getattr(mnist, "MLP")

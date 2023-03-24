@@ -50,7 +50,9 @@ class ClassificationLossVI(nn.Module):
             # Implement the following yourself
             #loss = F.cross_entropy(prediction, target_expanded, reduction='mean')
             p = F.softmax(prediction, dim=1).mean(dim=2)
-            loss = - torch.log(p[range(p.shape[0]), target]).mean()
+            # change the target type from double to long()
+            # to(dtype=torch.long)
+            loss = - torch.log(p[range(p.shape[0]), target.to(dtype=torch.long)]).mean()
             
             if torch.isnan(loss):
                 print('loss is nan')
@@ -67,7 +69,7 @@ class ClassificationLossVI(nn.Module):
                 p = F.softmax(prediction, dim=1).mean(dim=2)
                 losses = {}
                 kl_div = output_dict['kl_div']
-                _xe = - torch.log(p[range(p.shape[0]), target]).mean()
+                _xe = - torch.log(p[range(p.shape[0]), target.to(dtype=torch.long)]).mean()
                 losses['total_loss'] = _xe + kl_div()
                 losses['xe'] = _xe
           

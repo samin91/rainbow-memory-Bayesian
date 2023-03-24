@@ -368,8 +368,8 @@ class ImageResNetMNCL(nn.Module):
         '''
         # Remove max_pooling because the implementation of 
         # this layer is non-deterministic 
-        x = self.maxpool(*x)
-        #x = self.avgpool2d(*x)
+        #x = self.maxpool(*x)
+        x = self.avgpool2d(*x)
         
         # Layer_1
         # check nan
@@ -571,6 +571,7 @@ class ImageResNetMNCL(nn.Module):
         return prior_variances
 
 def ResNet(opt):
+    
     # how to access the above function when here we have a sunction and not a class? 
     if opt.depth==18:
         model = ImageResNetMNCL(opt, BasicBlock, [2, 2, 2, 2])

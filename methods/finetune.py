@@ -96,14 +96,14 @@ class Finetune:
         self.kwargs = kwargs
         # here we create the model instance and pass it to the device
         
-        self.model = select_model(self.model_name, self.dataset, kwargs["n_init_cls"], self.kwargs)
-
+        self.model = select_model(self.model_name, self.dataset, kwargs["n_init_cls"], self.kwargs)    
         # ------------------------------------------
         # dtype
         # ------------------------------------------
+        '''
         for name, param in self.model.named_parameters():
             print(f"{name}: {param.dtype}")
-                  
+        '''       
         self.model = self.model.to(self.device)
         self.criterion = self.criterion.to(self.device)
 
@@ -181,13 +181,15 @@ class Finetune:
                 # Set up kld weight
                 if self.kld_weight_atte is True: 
                     if cur_iter==0:
-                        self.model._kl_div_weight = 2e-9
+                        self.model._kl_div_weight = 5e-8
                     elif cur_iter==1:
-                        self.model._kl_div_weight = 3e-9
+                        self.model._kl_div_weight = 5e-7
                     elif cur_iter==2:
-                        self.model._kl_div_weight = 4e-9
+                        self.model._kl_div_weight = 5e-9
                     elif cur_iter==3:
-                        self.model._kl_div_weight = 7e-7
+                        self.model._kl_div_weight = 5e-9
+                    elif cur_iter==4:
+                        self.model._kl_div_weight = 5e-9
                     else:
                         pass
                 logger.info(f"kld weight is {self.model._kl_div_weight}")
@@ -235,7 +237,7 @@ class Finetune:
         
         if not self.already_mem_update:
             # -------------------------------------------
-            # EXPAMING MEMORY
+            # EXPANDING MEMORY
             # -------------------------------------------
             if self.expanding_memory is True:
                 logger.info(f"Update the growing memory over {num_class} classes by {self.mem_manage}")
@@ -883,6 +885,10 @@ class Finetune:
             quit()
 
         return checkpoint_saver, checkpoint_stats, filename
+    
+    def save_checkpoint(self, directory, stats_dict, store_as_best=False, store_prefixes="total_loss"):
+        checkpoint_saver = CheckpointSaver()
+        checkpoint_saver.save_latest(directory, self.model, stats_dict, store_as_best=False, store_prefixes="total_loss")
     
     # Bayesian uncertainty 
     def _Bayesian(self, infer_list):

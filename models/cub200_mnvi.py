@@ -303,9 +303,11 @@ class ImageResNetMNCL(nn.Module):
         logger.info("Input Data type range:", torch.finfo(x.dtype))
         '''
 
+        #x_variance = torch.zeros_like(x).double()
         x_variance = torch.zeros_like(x)
-
+        
         # First conv layer
+        #x = self.conv1(x.double(), x_variance)
         x = self.conv1(x, x_variance)
         # check nan
         for tensor in x:
