@@ -7,7 +7,7 @@ dataset = 'cifar10'
 Path = '/visinf/home/shamidi/Projects/rainbow-memory-Bayesian/results/cifar10/2023-03-23_11-49-54_rm_random_offline_msz500_rnd1_cutmix_autoaug.npy'
 
 data = np.load(Path)
-fig, axs = plt.subplots(len(data), 1, figsize=(6, 6*len(data)))
+fig, axs = plt.subplots(len(data), 1, figsize=(20, 10*len(data)))
 for i, sublist in enumerate(data):
     axs[i].plot(range(len(sublist)), sublist)
     axs[i].set_title(f"Task {i+1}")
