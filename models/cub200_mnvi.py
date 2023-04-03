@@ -4,13 +4,13 @@ torch.use_deterministic_algorithms(True, warn_only=True)
 import torch.nn as nn
 
 from models.layers import ConvBlock, InitialBlock, FinalBlock
-
 from models import varprop
 import torch.nn.functional as F
 import pdb
 torch.autograd.set_detect_anomaly(True)
-logger = logging.getLogger()
 
+
+logger = logging.getLogger()
 def head_size(split_targets):
     t=0
     for targets in split_targets:
