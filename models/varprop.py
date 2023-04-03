@@ -393,6 +393,96 @@ class BatchNorm2d(nn.Module):
         return outputs
 
 
+# ToDo: batchnorm1d? 
+class BatchNorm1d(nn.Module):
+    def __init__(self, num_features, eps=1e-5, momentum=0.1, affine=True,
+                 track_running_stats=True):
+        super(BatchNorm2d, self).__init__()
+        self.num_features = num_features
+        self.eps = eps
+        self.momentum = momentum
+        self.affine = affine
+        self.track_running_stats = track_running_stats
+        if self.affine:
+            self.weight = Parameter(torch.Tensor(num_features))
+            self.bias = Parameter(torch.Tensor(num_features))
+        else:
+            self.register_parameter('weight', None)
+            self.register_parameter('bias', None)
+        if self.track_running_stats:
+            self.register_buffer('running_mean', torch.zeros(num_features))
+            self.register_buffer('running_var', torch.ones(num_features))
+            self.register_buffer('num_batches_tracked', torch.tensor(0, dtype=torch.long))
+        else:
+            self.register_parameter('running_mean', None)
+            self.register_parameter('running_var', None)
+            self.register_parameter('num_batches_tracked', None)
+        self.reset_parameters()
+
+    def reset_running_stats(self):
+        if self.track_running_stats:
+            self.running_mean.zero_()
+            self.running_var.fill_(1)
+            self.num_batches_tracked.zero_()
+
+    def reset_parameters(self):
+        self.reset_running_stats()
+        if self.affine:
+            nn.init.uniform_(self.weight)
+            nn.init.zeros_(self.bias)
+
+    def forward(self, inputs_mean, inputs_variance):
+        # exponential_average_factor is self.momentum set to
+        # (when it is available) only so that if gets updated
+        # in ONNX graph when this node is exported to ONNX.
+        if self.momentum is None:
+            exponential_average_factor = 0.0
+        else:
+            exponential_average_factor = self.momentum
+
+        if self.training and self.track_running_stats:
+            if self.num_batches_tracked is not None:
+                self.num_batches_tracked += 1
+                if self.momentum is None:  # use cumulative moving average
+                    exponential_average_factor = 1.0 / float(self.num_batches_tracked)
+                else:  # use exponential moving average
+                    exponential_average_factor = self.momentum
+
+        outputs_mean = F.batch_norm(
+            inputs_mean, self.running_mean, self.running_var, self.weight, self.bias,
+            self.training or not self.track_running_stats,
+            exponential_average_factor, self.eps)
+        if self.training:
+            batch_variances = inputs_mean.detach().var(dim=(0,2,3)).view(1, -1, 1, 1)
+        else:
+            batch_variances = self.running_var.view(1, -1, 1, 1)
+        if self.affine:
+            weight = self.weight.view(1, -1, 1, 1)
+            outputs_variance = inputs_variance * weight**2 / (batch_variances + self.eps)
+        else:
+            outputs_variance = inputs_variance / (batch_variances + self.eps)
+        return outputs_mean, outputs_variance
+
+    def forward_sampling(self, inputs):
+        if self.momentum is None:
+            exponential_average_factor = 0.0
+        else:
+            exponential_average_factor = self.momentum
+
+        if self.training and self.track_running_stats:
+            if self.num_batches_tracked is not None:
+                self.num_batches_tracked += 1
+                if self.momentum is None:  # use cumulative moving average
+                    exponential_average_factor = 1.0 / float(self.num_batches_tracked)
+                else:  # use exponential moving average
+                    exponential_average_factor = self.momentum
+        outputs = F.batch_norm(
+            inputs, self.running_mean, self.running_var, self.weight, self.bias,
+            self.training or not self.track_running_stats,
+            exponential_average_factor, self.eps)
+        return outputs
+
+
 class MaxPool2d(nn.Module):
     def __init__(self, kernel_size=2, stride=2, padding=0, keep_variance_fn=None):
         super(MaxPool2d, self).__init__()

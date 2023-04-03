@@ -155,7 +155,7 @@ def base_parser():
      # Coreset size of the expanding memory
     parser.add_argument(
         "--expanding_memory",
-        action="store_false",
+        action="store_true",
         help="Growing memory replaces the fixed memory when our dataset has few smaples per task",
     )
     # Coreset size for the expanding memory
@@ -248,13 +248,13 @@ def base_parser():
 
     parser.add_argument(
         "--kld_weight_atte",
-        action="store_true",
+        action="store_false",
         help="Use KLD weight for attention of the prior effect",   
     )
 
     parser.add_argument(
         "--informed_prior",
-        action="store_true",
+        action="store_false",
         help="update the prior of task_i with the posterior of task_i-1",   
     )
 

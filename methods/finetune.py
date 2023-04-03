@@ -887,6 +887,7 @@ class Finetune:
         return checkpoint_saver, checkpoint_stats, filename
     
     def save_checkpoint(self, directory, stats_dict, store_as_best=False, store_prefixes="total_loss"):
+        
         checkpoint_saver = CheckpointSaver()
         checkpoint_saver.save_latest(directory, self.model, stats_dict, store_as_best=False, store_prefixes="total_loss")
     

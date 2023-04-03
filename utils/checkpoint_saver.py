@@ -8,6 +8,8 @@ import torch
 torch.use_deterministic_algorithms(True, warn_only=True)
 from torch import nn
 from utils import strings
+from utils import system
+from utils import json
 
 import pdb
 
@@ -122,10 +124,11 @@ class CheckpointSaver:
     def save_latest(self, directory, model_and_loss, stats_dict,
                     store_as_best=False, store_prefixes="total_loss"):
 
+        
         # -----------------------------------------------------------------------------------------
         # Mutable default args..
         # -----------------------------------------------------------------------------------------
-        store_as_best = list(store_as_best)
+        #store_as_best = list(store_as_best)
 
         # -----------------------------------------------------------------------------------------
         # Make sure directory exists
@@ -150,6 +153,7 @@ class CheckpointSaver:
         # -----------------------------------------------------------------------------------------
         # Possibly store as best
         # -----------------------------------------------------------------------------------------
+        '''
         for store, prefix in zip(store_as_best, store_prefixes):
             if store:
                 best_checkpoint_filename = os.path.join(
@@ -172,3 +176,4 @@ class CheckpointSaver:
                     logger.info("Save ckpt to ..\\%s" % shortname)
                     shutil.copyfile(latest_checkpoint_filename, best_checkpoint_filename)
                     shutil.copyfile(latest_statistics_filename, best_statistics_filename)
+        '''

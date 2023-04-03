@@ -32,6 +32,7 @@ import pdb
 
 def main():
     
+    Exp_name = 'Run_2_B'
     args = config.base_parser()
     # time stamp 
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -134,7 +135,7 @@ def main():
         # ----------------------------------------
         # TENSRBOARD
         # ---------------------------------------
-        f = 'tensorboard/test/'+'task_' + str(cur_iter)
+        f = 'tensorboard/'+ Exp_name +'/task_' + str(cur_iter)
         writer = SummaryWriter(f)
         
 
@@ -227,8 +228,8 @@ def main():
         task_records["cls_acc"].append(eval_dict["cls_acc"])
 
         # Save checkpoint per task
-        directory = f"checkpoints/{args.dataset}/Run_1/task_{cur_iter}/"
-        os.makedirs(directory, exist_ok=True)
+        directory = f"checkpoints/{args.dataset}/{Exp_name}/task_{cur_iter}/"
+        #os.makedirs(directory, exist_ok=True)
         method.save_checkpoint(directory, task_records, store_as_best=False, store_prefixes="total_loss")
         
 
@@ -242,20 +243,7 @@ def main():
         os.makedirs(f"results/{args.dataset}", exist_ok=True)
     np.save(f"results/{save_path}.npy", task_records["cls_acc"])
     
-  
-    # Loop through the sublists and plot each one
-    for i, sublist in enumerate(task_records["cls_acc"]):
-        plt.subplot(1, len(task_records["cls_acc"]), i+1)
-        plt.plot(range(len(sublist)), sublist)
-        plt.title(f"List {i+1}")
-        plt.xlabel("Classes")
-        plt.ylabel("Accuracy per class")
 
-    # Show the plot
-    plt.tight_layout()
-    plt.show()
-    
-   
     # Accuracy (A)
     A_avg = np.mean(task_records["task_acc"])
     A_last = task_records["task_acc"][args.n_tasks - 1]
