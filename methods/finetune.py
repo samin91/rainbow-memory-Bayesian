@@ -81,6 +81,8 @@ class Finetune:
         self.prev_streamed_list = []
         self.streamed_list = []
         self.test_list = []
+        # add valid list 
+        self.valid_list = []
         self.memory_list = []
         self.memory_size = kwargs["memory_size"]
         self.mem_manage = kwargs["mem_manage"]
@@ -126,12 +128,14 @@ class Finetune:
         self.end_event = torch.cuda.Event(enable_timing=True)
         #-------------------------------------------
 
-    def set_current_dataset(self, train_datalist, test_datalist):
+    def set_current_dataset(self, train_datalist, test_datalist, valid_datalist):
         
         random.shuffle(train_datalist)
         self.prev_streamed_list = self.streamed_list
         self.streamed_list = train_datalist
         self.test_list = test_datalist
+        # add validation set
+        self.valid_list = valid_datalist
 
     def before_task(self, datalist, cur_iter, init_model=False, init_opt=True, bayesian=False):
         logger.info("Apply before_task")
@@ -297,10 +301,13 @@ class Finetune:
         else:
             logger.warning(f"Already updated the memory during this iter ({cur_iter})")
 
-    def get_dataloader(self, batch_size, n_worker, train_list, test_list):
+    def get_dataloader(self, batch_size, n_worker, train_list, test_list, valid_list):
         # Loader
         train_loader = None
         test_loader = None
+        # add valid_loader 
+        valid_loader = None
+
         if train_list is not None and len(train_list) > 0:
             train_dataset = ImageDataset(
                 pd.DataFrame(train_list),
@@ -326,16 +333,27 @@ class Finetune:
             test_loader = DataLoader(
                 test_dataset, shuffle=False, batch_size=batch_size, num_workers=n_worker, pin_memory=True
             )
+        
+        if valid_list is not None:
+            valid_dataset = ImageDataset(
+                pd.DataFrame(valid_list),
+                dataset=self.dataset,
+                transform=self.test_transform, # use the same transformation for the valid set as the test set
+            )
+            valid_loader = DataLoader(
+                valid_dataset, shuffle=False, batch_size=batch_size, num_workers=n_worker, pin_memory=True
+            )
 
-        return train_loader, test_loader
+        return train_loader, test_loader, valid_loader
 
     def train(self, cur_iter, n_epoch, batch_size, n_worker, n_passes=1):
 
         train_list = self.streamed_list + self.memory_list
         random.shuffle(train_list)
         test_list = self.test_list
-        train_loader, test_loader = self.get_dataloader(
-            batch_size, n_worker, train_list, test_list
+        valid_set = self.valid_set
+        train_loader, test_loader, valid_loader = self.get_dataloader(
+            batch_size, n_worker, train_list, test_list, valid_set
         )
 
         logger.info(f"Streamed samples: {len(self.streamed_list)}")
