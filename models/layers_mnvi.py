@@ -44,6 +44,7 @@ class ConvBlock(nn.Module):
             groups=groups,
         )
         '''
+        
         conv = varprop.Conv2dMNCL(in_channels, 
                                   out_channels, 
                                   kernel_size=kernel_size, 
@@ -64,7 +65,7 @@ class ConvBlock(nn.Module):
                     num_features=in_channels, affine=opt.affine_bn, eps=opt.bn_eps
                 )
                 '''
-                bn = varprop.BatchNorm2d(num_features=in_channels, affine=opt.affine_bn, eps=opt.bn_eps)
+                bn = varprop.BatchNorm2d(num_features=in_channels, eps=opt.bn_eps, affine=opt.affine_bn)
                 layer = [bn]
             else:
                 # here we need to change the bn layer to the Bayesian one
@@ -73,7 +74,7 @@ class ConvBlock(nn.Module):
                     num_features=out_channels, affine=opt.affine_bn, eps=opt.bn_eps
                 )
                 '''
-                bn = varprop.BatchNorm2d(num_features=in_channels, affine=opt.affine_bn, eps=opt.bn_eps)
+                bn = varprop.BatchNorm2d(num_features=out_channels, eps=opt.bn_eps, affine=opt.affine_bn)
                 layer = [conv, bn]
 
         if opt.activetype is not "None":
@@ -87,10 +88,10 @@ class ConvBlock(nn.Module):
         if opt.bn and opt.preact:
             layer.append(conv)
 
-        self.block = nn.Sequential(*layer)
+        self.block = varprop.Sequential(*layer)
 
-    def forward(self, input):
-        return self.block.forward(input)
+    def forward(self, input, input_variance):
+        return self.block.forward(input, input_variance)
 
 # Shold we reimplelemnt the final block for the Bayesain model? 
 class FCBlock(nn.Module):
@@ -115,7 +116,7 @@ class FCBlock(nn.Module):
         lin = nn.Linear(in_channels, out_channels, bias=bias)
         '''
         lin = varprop.LinearMNCL(in_channels, 
-                                self.opt["num_classes"], 
+                                opt.num_classes, 
                                 prior_precision=opt.prior_precision,
                                 prior_mean=opt.prior_mean,
                                 mnv_init=opt.mnv_init)
@@ -127,7 +128,7 @@ class FCBlock(nn.Module):
                 # here we need to change the bn layer to the Bayesian one
                 # this needs to be implemented for the Bayesian case
                 # ???? 
-                bn = varprop.BatchNorm1d(num_features=in_channels, affine=opt.affine_bn, eps=opt.bn_eps)
+                bn = varprop.BatchNorm1d(num_features=in_channels, eps=opt.bn_eps, affine=opt.affine_bn)
                 '''
                 bn = getattr(nn, opt.normtype + "1d")(
                     num_features=in_channels, affine=opt.affine_bn, 
@@ -137,7 +138,7 @@ class FCBlock(nn.Module):
                 layer = [bn]
             else:
                 # here we need to change the bn layer to the Bayesian one
-                bn = varprop.BatchNorm1d(num_features=out_channels, affine=opt.affine_bn, eps=opt.bn_eps)
+                bn = varprop.BatchNorm1d(num_features=out_channels,eps=opt.bn_eps, affine=opt.affine_bn)
                 '''
                 bn = getattr(nn, opt.normtype + "1d")(
                     num_features=out_channels, affine=opt.affine_bn, 
@@ -158,11 +159,11 @@ class FCBlock(nn.Module):
             layer.append(lin)
 
         
-        self.block = nn.Sequential(*layer)
+        self.block = varprop.Sequential(*layer)
 
     # how to rewrite this when we have one input?
-    def forward(self, input):
-            return self.block.forward(input)
+    def forward(self, input, input_variance):
+            return self.block.forward(input, input_variance)
         
 
 def FinalBlock(opt, in_channels, bias=False):
