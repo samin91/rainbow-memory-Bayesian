@@ -42,6 +42,7 @@ class RM(Finetune):
         self.n_worker = kwargs["n_worker"]
         self.exp_env = kwargs["stream_env"]
         self.bayesian = kwargs["bayesian_model"]
+        self.pretrain = kwargs['pretrain']
         if kwargs["mem_manage"] == "default":
             self.mem_manage = "uncertainty"
 
@@ -68,16 +69,18 @@ class RM(Finetune):
         # train_list == streamed_list in RM
         train_list = self.streamed_list
         test_list = self.test_list
+        valid_list = self.valid_list
         random.shuffle(train_list)
         # Configuring a batch with streamed and memory data equally.
-        train_loader, test_loader = self.get_dataloader(
-            stream_batch_size, n_worker, train_list, test_list
+        train_loader, test_loader, valid_loader  = self.get_dataloader(
+            stream_batch_size, n_worker, train_list, test_list, valid_list
         )
 
         logger.info(f"Streamed samples: {len(self.streamed_list)}")
         logger.info(f"In-memory samples: {len(self.memory_list)}")
         logger.info(f"Train samples: {len(train_list)+len(self.memory_list)}")
         logger.info(f"Test samples: {len(test_list)}")
+        logger.info(f"Valid samples: {len(valid_list)}")
 
         # TRAIN
         best_acc = 0.0
@@ -86,7 +89,24 @@ class RM(Finetune):
 
         '''ToDo: should we also put the loss function on the device? hmmmm
         '''
-        
+       
+        if self.pretrain is True:
+            # automatically know wheich model is supposed to get the weights? 
+            if self.bayesian is False:
+                # Load the pre-trained weights
+                pretrained_dict = torch.hub.load_state_dict_from_url('https://s3.amazonaws.com/pytorch/models/resnet18-5c106cde.pth')
+                #pretrained_dict = torch.load('path/to/pretrained_weights.pth')
+                # Filter out unnecessary keys
+                model_dict = self.model.state_dict()
+                pretrained_dict = {k: v for k, v in pretrained_dict.items() 
+                                   if k in model_dict and k not in ('fc.weight', 'fc.bias')}
+
+                # Load the pre-trained weights into the model
+                model_dict.update(pretrained_dict)
+                self.model.load_state_dict(model_dict)
+
+
+
         self.model = self.model.to(self.device)
         
         for epoch in range(n_epoch):
@@ -100,7 +120,7 @@ class RM(Finetune):
                 for param_group in self.optimizer.param_groups:
                     # param_group is the dict inside the list and is the only item in this list.
                     if self.bayesian is True:
-                        param_group["lr"] = self.lr
+                        param_group["lr"] = self.lr * 0.1 # this was changed due to inf error
                     else:
                         param_group["lr"] = self.lr * 0.1
             elif epoch == 1:  # Then set to maxlr
@@ -115,7 +135,12 @@ class RM(Finetune):
                                                 optimizer=self.optimizer, criterion=self.criterion)
             train_end = time.time() - train_start
 
-            # EVAL - testing over all the test sets seen so far
+            # Validation (validating over all the test sets seen so far)
+            eval_dict_valid = self.evaluation(
+                valid_loader=valid_loader, criterion=self.criterion
+            )
+
+            # Testing (testing over all the test sets seen so far)
             infer_start = time.time()
             eval_dict = self.evaluation(
                 test_loader=test_loader, criterion=self.criterion
@@ -135,8 +160,13 @@ class RM(Finetune):
                 f"task{cur_iter}/train/lr", self.optimizer.param_groups[0]["lr"], epoch
             )
             '''
+            # Train
             writer.add_scalar('Accuracy/train', train_acc, epoch)
             writer.add_scalar("Loss/train", train_loss, epoch)
+            # Valid
+            writer.add_scalar('Accuracy/valid-',eval_dict_valid["avg_acc"], epoch)
+            writer.add_scalar('Loss/valid-', eval_dict_valid["avg_loss"] , epoch)
+            # Test
             writer.add_scalar('Accuracy/valid-',eval_dict["avg_acc"], epoch)
             writer.add_scalar('Loss/valid-', eval_dict["avg_loss"] , epoch)
             # -------------------------------------------------------------------
@@ -144,13 +174,23 @@ class RM(Finetune):
             # -------------------------------------------------------------------
             logger.info(
                 f"Task {cur_iter} | Epoch {epoch+1}/{n_epoch} | train_loss {train_loss:.4f} | train_acc {train_acc:.4f} | "
-                f"test_loss {eval_dict['avg_loss']:.4f} | test_acc {eval_dict['avg_acc']:.4f} | training time {train_end:.2f} | inference time {infer_end:.2f} |"
+                f"test_loss {eval_dict['avg_loss']:.4f} | test_acc {eval_dict['avg_acc']:.4f} | "
+                f"valid_loss {eval_dict_valid['avg_loss']:.4f} | valid_acc {eval_dict_valid['avg_acc']:.4f} | "
+                f"training time {train_end:.2f} | inference time {infer_end:.2f} |"
                 f"lr {self.optimizer.param_groups[0]['lr']:.4f}"
             )
             # --------------------------------------------------------------------
             # they report best eval accuracy and not the last one! 
             # --------------------------------------------------------------------
             best_acc = max(best_acc, eval_dict["avg_acc"])
+            #best_acc = max(best_acc, eval_dict_valid["avg_acc"])
+            # --------------------------------------------------------------------
+            # If bayesian, save the best posterior
+            # --------------------------------------------------------------------
+            '''
+            ToDo: based on jannik's code
+            
+            '''
 
             # --------------------------------------------------------------------
             # Early stopping
@@ -158,14 +198,14 @@ class RM(Finetune):
             # early_stopping needs the validation loss to check if it has decresed, 
             # and if it has, it will make a checkpoint of the current model
 
-            if cur_iter >=2: # for the first two tasks we train for longer 
-                if self.early_stopping is True:
-                    early_stopping(eval_dict["avg_loss"], self.model)
-                
-                    if early_stopping.early_stop:
-                        print(f"Early stopping for task_{cur_iter} on epoch {epoch+1}")
-                        break
-
+            #if cur_iter >=2: # for the first two tasks we train for longer 
+            if self.early_stopping is True:
+                early_stopping(eval_dict_valid["avg_loss"], self.model)
+            
+                if early_stopping.early_stop:
+                    print(f"Early stopping for task_{cur_iter} on epoch {epoch+1}")
+                    break
+            
         return best_acc, eval_dict
 
     def update_model(self, x, y, criterion, optimizer):
