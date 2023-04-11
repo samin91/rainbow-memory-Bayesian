@@ -60,15 +60,17 @@ class BasicBlock(nn.Module):
             bias=False,
         )
 
-    def forward(self, x):
-        _out = self.conv1(x)
-        _out = self.conv2(_out)
+    def forward(self, x, x_variance):
+
+        _out = self.conv1(x, x_variance)
+        _out_mean, _out_variance = self.conv2(*_out)
         if self.downsample is not None:
-            shortcut = self.downsample(x)
+            shortcut_mean, shortcut_variance = self.downsample(x, x_variance)
         else:
-            shortcut = x
-        _out = _out + shortcut
-        return _out
+            shortcut_mean, shortcut_variance = x, x_variance
+        _out_mean = _out_mean + shortcut_mean
+        _out_variance = _out_variance + shortcut_variance
+        return _out_mean, _out_variance
 
 
 class BottleneckBlock(nn.Module):
@@ -133,7 +135,7 @@ class ResidualBlock(nn.Module):
             )
         else:
             downsample = None
-        self.blocks = nn.Sequential()
+        self.blocks = varprop.Sequential()
         self.blocks.add_module(
             "block0", block(opt, inChannels, outChannels, stride, downsample)
         )
@@ -143,8 +145,8 @@ class ResidualBlock(nn.Module):
                 "block{}".format(i), block(opt, inChannels, outChannels)
             )
 
-    def forward(self, x):
-        return self.blocks(x)
+    def forward(self, x, x_variance):
+        return self.blocks(x, x_variance)
 
 
 class ResNet(nn.Module):
@@ -152,6 +154,8 @@ class ResNet(nn.Module):
         super(ResNet, self).__init__()
         
         depth = opt.depth
+        self._kl_div_weight = opt.model_kl_div_weight
+
         if depth in [20, 32, 44, 56, 110, 1202]:
             blocktype, self.nettype = "BasicBlock", "cifar"
         elif depth in [164, 1001]:
@@ -303,16 +307,21 @@ class ResNet(nn.Module):
         return prior_variances
 
     def forward(self, x):
-        out = self.initial(x)
-        out = self.group1(out)
-        out = self.group2(out)
-        out = self.group3(out)
+        x_variance = torch.zeros_like(x)
+
+        out = self.initial(x, x_variance)
+        out = self.group1(*out)
+        out = self.group2(*out)
+        out = self.group3(*out)
         if self.nettype == "imagenet":
-            out = self.group4(out)
-        out = self.pool(out)
-        out = out.view(x.size(0), -1)
-        out = self.fc(out)
-        return out
+            out = self.group4(*out)
+        out = self.pool(*out)
+        out_mean, out_variance = self.pool(*out)
+        # here flattening should be done seperately for both tensors: mean and variance
+        out_mean = out_mean.view(x.size(0), -1)
+        out_variance = out_variance.view(x.size(0), -1)
+        out_mean, out_variance = self.fc(out_mean, out_variance)
+        return {'prediction_mean':out_mean, 'prediction_variance':out_variance, 'kl_div':self.kl_div}
 
 
 
