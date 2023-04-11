@@ -47,6 +47,8 @@ class ImageDataset(Dataset):
         return self.data_frame[self.data_frame["label"] == y]
 
 
+
+# ToDo: the address here needs to change: 4500 size 
 def get_train_datalist(args, cur_iter: int) -> List:
     if args.mode == "joint":
         datalist = []
@@ -59,7 +61,7 @@ def get_train_datalist(args, cur_iter: int) -> List:
                 iter=cur_iter_,
             )
             datalist += pd.read_json(
-                f"collections/{args.dataset}/{collection_name}.json"
+                f"/visinf/home/shamidi/fastdata/RM/collections/{args.dataset}/{collection_name}.json"
             ).to_dict(orient="records")
             logger.info(f"[Train] Get datalist from {collection_name}.json")
     else:
@@ -110,6 +112,33 @@ def get_test_datalist(args, exp_name: str, cur_iter: int) -> List:
         logger.info(f"[Test ] Get datalist from {collection_name}.json")
 
     return datalist
+
+# ToDo: add valid datalist
+def get_valid_datalist(args, exp_name: str, cur_iter: int) -> List:
+    if exp_name is None:
+        exp_name = args.exp_name
+
+    if exp_name in ["joint", "blurry10", "blurry30"]:
+        # merge over all tasks
+        tasks = list(range(args.n_tasks))
+    elif exp_name == "disjoint":
+        # merge current and all previous tasks
+        tasks = list(range(cur_iter + 1))
+    else:
+        raise NotImplementedError
+
+    datalist = []
+    for iter_ in tasks:
+        collection_name = "{dataset}_valid_rand{rnd}_cls{n_cls}_task{iter}".format(
+            dataset=args.dataset, rnd=args.rnd_seed, n_cls=args.n_cls_a_task, iter=iter_
+        )
+        datalist += pd.read_json(
+            f"/visinf/home/shamidi/fastdata/RM/collections/{args.dataset}/{collection_name}.json"
+        ).to_dict(orient="records")
+        logger.info(f"[Test ] Get datalist from {collection_name}.json")
+
+    return datalist
+
 
 
 def get_statistics(dataset: str):
