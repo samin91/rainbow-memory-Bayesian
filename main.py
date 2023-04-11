@@ -21,7 +21,7 @@ from torchvision import transforms
 from configuration import config
 from utils.augment import Cutout, select_autoaugment
 from utils.data_loader import get_test_datalist, get_statistics
-from utils.data_loader import get_train_datalist
+from utils.data_loader import get_train_datalist, get_valid_datalist
 from utils.method_manager import select_method
 from utils.bayes_utils import configure_prior_conversion_function
 from losses.probabilistic_loss import configure_model_and_loss
@@ -32,7 +32,7 @@ import pdb
 
 def main():
     
-    Exp_name = 'Run_2_B'
+    Exp_name = 'gdumb_bayesian_cifar10_informed_prior_blurry10_cos_lr_0.01'
     args = config.base_parser()
     # time stamp 
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -106,6 +106,9 @@ def main():
             transforms.Normalize(mean, std),
         ]
     )
+    # valid transformation is the same as the test transformation
+
+    
     # Loss Function
     if args.bayesian_model is True:
         logger.info(f"[1] Training a Bayesian model)")
@@ -153,6 +156,7 @@ def main():
         # get datalist
         # what about validation set?
         cur_train_datalist = get_train_datalist(args, cur_iter)
+        cur_valid_datalist = get_valid_datalist(args, args.exp_name, cur_iter)
         cur_test_datalist = get_test_datalist(args, args.exp_name, cur_iter)
 
         # Reduce datalist in Debug mode
@@ -163,7 +167,7 @@ def main():
             cur_test_datalist = cur_test_datalist[:2560]
         
         logger.info("[2-2] Set environment for the current task")
-        method.set_current_dataset(cur_train_datalist, cur_test_datalist)
+        method.set_current_dataset(cur_train_datalist, cur_test_datalist, cur_valid_datalist)
         # Increment known class for current task iteration.
         # reinitalize optimizer and scheduler?
         # Add the trainable parameters for the optimizer
