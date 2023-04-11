@@ -21,6 +21,7 @@ class ConvBlock(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.kernel_size = kernel_size
+        
         conv = nn.Conv2d(
             in_channels,
             out_channels,
