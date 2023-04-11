@@ -397,7 +397,7 @@ class BatchNorm2d(nn.Module):
 class BatchNorm1d(nn.Module):
     def __init__(self, num_features, eps=1e-5, momentum=0.1, affine=True,
                  track_running_stats=True):
-        super(BatchNorm2d, self).__init__()
+        super(BatchNorm1d, self).__init__()
         self.num_features = num_features
         self.eps = eps
         self.momentum = momentum
