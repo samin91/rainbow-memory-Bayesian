@@ -114,13 +114,38 @@ class RM(Finetune):
             infer_start=0
             train_end=0
             infer_end=0
+            '''
+            # -------------------------------------------------------
+            # For the first task we need a larger learning_rate
+            #--------------------------------------------------------
+            if cur_iter==0:
+                lr = 0.03
+                # initialize for each task
+                # optimizer.param_groups is a python list, which contains a dictionary.
+                if epoch <= 0:  # Warm start of 1 epoch
+                    for param_group in self.optimizer.param_groups:
+                        # param_group is the dict inside the list and is the only item in this list.
+                        if self.bayesian is True:
+                            param_group["lr"] = lr * 0.1 # self.lr * 0.1   this was changed due to inf error
+                        else:
+                            param_group["lr"] = lr * 0.1
+                elif epoch == 1:  # Then set to maxlr
+                    for param_group in self.optimizer.param_groups:
+                        param_group["lr"] = lr
+                else:  # Aand go!
+                    if self.scheduler is not None:
+                        self.scheduler.step()
+
+
+            else: 
+            '''
             # initialize for each task
             # optimizer.param_groups is a python list, which contains a dictionary.
             if epoch <= 0:  # Warm start of 1 epoch
                 for param_group in self.optimizer.param_groups:
                     # param_group is the dict inside the list and is the only item in this list.
                     if self.bayesian is True:
-                        param_group["lr"] = self.lr * 0.1 # this was changed due to inf error
+                        param_group["lr"] = self.lr *0.1  # self.lr * 0.1   this was changed due to inf error
                     else:
                         param_group["lr"] = self.lr * 0.1
             elif epoch == 1:  # Then set to maxlr
@@ -137,7 +162,7 @@ class RM(Finetune):
 
             # Validation (validating over all the test sets seen so far)
             eval_dict_valid = self.evaluation(
-                valid_loader=valid_loader, criterion=self.criterion
+                valid_loader, criterion=self.criterion
             )
 
             # Testing (testing over all the test sets seen so far)
@@ -164,11 +189,13 @@ class RM(Finetune):
             writer.add_scalar('Accuracy/train', train_acc, epoch)
             writer.add_scalar("Loss/train", train_loss, epoch)
             # Valid
+            
             writer.add_scalar('Accuracy/valid-',eval_dict_valid["avg_acc"], epoch)
             writer.add_scalar('Loss/valid-', eval_dict_valid["avg_loss"] , epoch)
+            
             # Test
-            writer.add_scalar('Accuracy/valid-',eval_dict["avg_acc"], epoch)
-            writer.add_scalar('Loss/valid-', eval_dict["avg_loss"] , epoch)
+            writer.add_scalar('Accuracy/test-',eval_dict["avg_acc"], epoch)
+            writer.add_scalar('Loss/test-', eval_dict["avg_loss"] , epoch)
             # -------------------------------------------------------------------
             # Logging to console
             # -------------------------------------------------------------------

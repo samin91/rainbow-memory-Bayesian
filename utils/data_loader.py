@@ -13,7 +13,7 @@ import pandas as pd
 import torch
 torch.use_deterministic_algorithms(True, warn_only=True)
 from torch.utils.data import Dataset
-
+import pdb
 logger = logging.getLogger()
 
 
@@ -60,8 +60,9 @@ def get_train_datalist(args, cur_iter: int) -> List:
                 n_cls=args.n_cls_a_task,
                 iter=cur_iter_,
             )
-            datalist += pd.read_json(
-                f"/visinf/home/shamidi/fastdata/RM/collections/{args.dataset}/{collection_name}.json"
+            #f"collections/{args.dataset}/{collection_name}.json"
+            datalist += pd.read_json( 
+                f"collections/{args.dataset}/{collection_name}.json"    
             ).to_dict(orient="records")
             logger.info(f"[Train] Get datalist from {collection_name}.json")
     else:
@@ -72,7 +73,7 @@ def get_train_datalist(args, cur_iter: int) -> List:
             n_cls=args.n_cls_a_task,
             iter=cur_iter,
         )
-
+        # f"collections/{args.dataset}/{collection_name}.json"
         datalist = pd.read_json(
             f"collections/{args.dataset}/{collection_name}.json"
         ).to_dict(orient="records")
@@ -133,7 +134,7 @@ def get_valid_datalist(args, exp_name: str, cur_iter: int) -> List:
             dataset=args.dataset, rnd=args.rnd_seed, n_cls=args.n_cls_a_task, iter=iter_
         )
         datalist += pd.read_json(
-            f"/visinf/home/shamidi/fastdata/RM/collections/{args.dataset}/{collection_name}.json"
+            f"collections/{args.dataset}/{collection_name}.json"
         ).to_dict(orient="records")
         logger.info(f"[Test ] Get datalist from {collection_name}.json")
 

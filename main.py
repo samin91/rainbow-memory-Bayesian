@@ -32,7 +32,7 @@ import pdb
 
 def main():
     
-    Exp_name = 'gdumb_bayesian_cifar10_informed_prior_blurry10_cos_lr_0.01'
+    Exp_name = 'gdumb_bayesian_cifar10_informed_prior_cos_0.03_online_disjoint_VS'
     args = config.base_parser()
     # time stamp 
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -155,6 +155,7 @@ def main():
 
         # get datalist
         # what about validation set?
+        
         cur_train_datalist = get_train_datalist(args, cur_iter)
         cur_valid_datalist = get_valid_datalist(args, args.exp_name, cur_iter)
         cur_test_datalist = get_test_datalist(args, args.exp_name, cur_iter)
@@ -203,8 +204,8 @@ def main():
 
             method.update_memory(cur_iter)
 
-            # No stremed training data, train with only memory_list
-            method.set_current_dataset([], cur_test_datalist)
+            # No streamed training data, train with only the memory_list
+            method.set_current_dataset([], cur_test_datalist, cur_valid_datalist)
 
             logger.info("Train over memory")
             task_acc, eval_dict = method.train(

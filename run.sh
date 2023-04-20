@@ -4,10 +4,10 @@
 MODE="rm" # joint, gdumb, icarl, rm, ewc, rwalk, bic   # here I can add the Bayesian method? althoug the Bayesian method is more of a architecture than a method! the loss maybe is! 
 # "default": If you want to use the default memory management method.
 MEM_MANAGE="uncertainty" # default, random, reservoir, uncertainty, prototype.
-RND_SEED=3
+RND_SEED=1
 DATASET="cifar10" # mnist, cifar10, cifar100, imagenet, cub200
-STREAM="offline" # offline, online
-EXP="blurry10" # disjoint, blurry10, blurry30
+STREAM="online" # offline, online
+EXP="disjoint" # disjoint, blurry10, blurry30
 MEM_SIZE=500 # cifar10: k={200, 500, 1000}, mnist: k=500, cifar100: k=2,000, imagenet: k=20,000, cub200:k={340}
 TRANS="cutmix autoaug" # multiple choices: cutmix, cutout, randaug, autoaug
 
@@ -64,7 +64,7 @@ if [ "$DATASET" == "mnist" ]; then
 elif [ "$DATASET" == "cifar10" ]; then
     TOTAL=50000 N_VAL=250 N_CLASS=10 TOPK=1
     MODEL_NAME="resnet18"
-    N_EPOCH=300; BATCHSIZE=256; LR=0.01 OPT_NAME="sgd" SCHED_NAME="cos" #128
+    N_EPOCH=500; BATCHSIZE=256; LR=0.03 OPT_NAME="sgd" SCHED_NAME="cos" #128
     if [ "${MODE_LIST[0]}" == "joint" ]; then
         N_INIT_CLS=10 N_CLS_A_TASK=10 N_TASKS=1
     elif [[ "$EXP" == *"blurry"* ]]; then
@@ -113,7 +113,7 @@ else
     exit 1
 fi
 
-CUDA_VISIBLE_DEVICES=3 CUBLAS_WORKSPACE_CONFIG=:16:8 python main.py --mode $MODE --mem_manage $MEM_MANAGE --exp_name $EXP \
+CUDA_VISIBLE_DEVICES=0 CUBLAS_WORKSPACE_CONFIG=:16:8 python main.py --mode $MODE --mem_manage $MEM_MANAGE --exp_name $EXP \
 --dataset $DATASET --stream_env $STREAM  $INIT_MODEL $INIT_OPT --topk $TOPK \
 --n_tasks $N_TASKS --n_cls_a_task $N_CLS_A_TASK --n_init_cls $N_INIT_CLS \
 --rnd_seed $RND_SEED --model_name $MODEL_NAME --opt_name $OPT_NAME --pretrain $PRETRAIN --sched_name $SCHED_NAME \

@@ -187,13 +187,13 @@ class Finetune:
                     if cur_iter==0:
                         self.model._kl_div_weight = 5e-8
                     elif cur_iter==1:
-                        self.model._kl_div_weight = 5e-7
+                        self.model._kl_div_weight = 4e-8
                     elif cur_iter==2:
-                        self.model._kl_div_weight = 5e-9
+                        self.model._kl_div_weight = 3e-8
                     elif cur_iter==3:
-                        self.model._kl_div_weight = 5e-9
+                        self.model._kl_div_weight = 2e-8
                     elif cur_iter==4:
-                        self.model._kl_div_weight = 5e-9
+                        self.model._kl_div_weight = 1e-8
                     else:
                         pass
                 logger.info(f"kld weight is {self.model._kl_div_weight}")
@@ -333,7 +333,7 @@ class Finetune:
             test_loader = DataLoader(
                 test_dataset, shuffle=False, batch_size=batch_size, num_workers=n_worker, pin_memory=True
             )
-        
+       
         if valid_list is not None:
             valid_dataset = ImageDataset(
                 pd.DataFrame(valid_list),
