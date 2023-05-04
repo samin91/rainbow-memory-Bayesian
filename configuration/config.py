@@ -207,8 +207,6 @@ def base_parser():
         help="KL divergence weight for Bayesian model",
     )
 
-
-
     parser.add_argument(
         "--prior_conv_function",
         type=str,
@@ -217,7 +215,6 @@ def base_parser():
         help="Prior conversion function for Bayesian model",
     )
 
-   
     parser.add_argument(
         "--checkpoint_path",
         type=strings.as_string_or_none,
@@ -263,8 +260,6 @@ def base_parser():
         action="store_false",
         help="early stopping on the validation set",   
     )
-
-
 
    
     # Debug

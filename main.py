@@ -32,7 +32,7 @@ import pdb
 
 def main():
     
-    Exp_name = 'gdumb_bayesian_cifar10_informed_prior_cos_0.03_online_disjoint_VS'
+    Exp_name = 'B_32'
     args = config.base_parser()
     # time stamp 
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -141,6 +141,8 @@ def main():
         f = 'tensorboard/'+ Exp_name +'/task_' + str(cur_iter)
         writer = SummaryWriter(f)
         
+        # for checkpointing 
+        # store_as_best = [False for i in range(num_validation_losses)]
 
         if args.mode == "joint" and cur_iter > 0:
             return

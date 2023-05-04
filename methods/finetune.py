@@ -185,15 +185,15 @@ class Finetune:
                 # Set up kld weight
                 if self.kld_weight_atte is True: 
                     if cur_iter==0:
-                        self.model._kl_div_weight = 5e-8
+                        self.model._kl_div_weight = 5e-7
                     elif cur_iter==1:
-                        self.model._kl_div_weight = 4e-8
+                        self.model._kl_div_weight = 6e-7
                     elif cur_iter==2:
-                        self.model._kl_div_weight = 3e-8
+                        self.model._kl_div_weight = 7e-7
                     elif cur_iter==3:
-                        self.model._kl_div_weight = 2e-8
+                        self.model._kl_div_weight = 8e-7
                     elif cur_iter==4:
-                        self.model._kl_div_weight = 1e-8
+                        self.model._kl_div_weight = 9e-7
                     else:
                         pass
                 logger.info(f"kld weight is {self.model._kl_div_weight}")
@@ -248,10 +248,12 @@ class Finetune:
                 candidates = self.streamed_list 
                 if self.mem_manage == "random":
                         self.memory_list.extend(self.rnd_sampling(candidates, self.coreset_size)) # memory grows, hence using .extend()
+                elif self.mem_manage == "random_balanced":
+                        self.memory_list.extend(self.equal_class_sampling(candidates, num_class, cur_iter))
                 elif self.mem_manage == "uncertainty":
                         if cur_iter == 0:
                             # how does this work for a Bayesian model? the same as normal models
-                            self.memory_list.extend(self.equal_class_sampling(candidates, num_class)) # memory grows, hence using .extend()
+                            self.memory_list.extend(self.equal_class_sampling(candidates, num_class, cur_iter)) # memory grows, hence using .extend()
                         else:
                             self.memory_list.extend(self.uncertainty_sampling(candidates, num_class, cur_iter)) # memory grows, hence using .extend()
             # -------------------------------------------
@@ -267,6 +269,8 @@ class Finetune:
                 else:
                     if self.mem_manage == "random":
                         self.memory_list = self.rnd_sampling(candidates, self.memory_size)
+                    elif self.mem_manage == "random_balanced":
+                        self.memory_list = self.equal_class_sampling(candidates, num_class, cur_iter)
                     elif self.mem_manage == "reservoir":
                         self.reservoir_sampling(self.streamed_list)
                     elif self.mem_manage == "prototype":
@@ -279,7 +283,7 @@ class Finetune:
                         if cur_iter == 0:
                             # how does this work for a Bayesian model? the same as normal models
                             self.memory_list = self.equal_class_sampling(
-                                candidates, num_class
+                                candidates, num_class, cur_iter
                             )
                         else:
                             self.memory_list = self.uncertainty_sampling(
@@ -804,8 +808,8 @@ class Finetune:
 
 
 
-    def equal_class_sampling(self, samples, num_class):
-
+    def equal_class_sampling(self, samples, num_class, task_num):
+        
         sample_df = pd.DataFrame(samples)
         ret = []
         # -------------------------------------------------
@@ -813,15 +817,17 @@ class Finetune:
         # -------------------------------------------------
         if self.expanding_memory:
             mem_per_cls = self.coreset_size // num_class
-            # Warning: assuming the classes were ordered following task number.
+            # Warning: assuming the classes were ordered following task number. (task 0: cls:0-19, task_1: cls: 20-39)
             for y in range(num_class):
+                # (task 0: cls:0-19, task_1: cls: 20-39, ...)
+                y = y + task_num * num_class
                 cls_df = sample_df[sample_df["label"] == y]
                 ret += cls_df.sample(n=min(mem_per_cls, len(cls_df))).to_dict(
                     orient="records"
                 )
             assert len(ret) == self.coreset_size 
         # -------------------------------------------------
-        # FIXED MEMORY
+        # FIXED MEMORY[]
         # -------------------------------------------------
         else:
             mem_per_cls = self.memory_size // num_class
@@ -862,7 +868,7 @@ class Finetune:
         # check the state dictionary
 
     def checkpoint_saver_loader(self, ):
-        #pdb.set_trace()
+        
         """Manage the checkpoint of the model."""
         #pdb.set_trace()
         checkpoint_saver = CheckpointSaver()

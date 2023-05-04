@@ -66,7 +66,7 @@ class CheckpointSaver:
                 raise KeyError('missing keys in state_dict: "{}"'.format(missing))
 
     def restore(self, filename, model, include_params="*", exclude_params=()):
-        
+        #pdb.set_trace()
         # -----------------------------------------------------------------------------------------
         # Make sure file exists
         # -----------------------------------------------------------------------------------------
@@ -77,7 +77,7 @@ class CheckpointSaver:
         # -----------------------------------------------------------------------------------------
         # Load checkpoint from file including the state_dict
         # -----------------------------------------------------------------------------------------
-        checkpoint_with_state = torch.load(filename, map_location="cpu")
+        checkpoint_with_state = torch.load(filename, map_location="cpu") #dict_keys(['total_loss', 'xe', 'top1', 'top2', 'top3', 'epoch', 'state_dict'])
 
         # -----------------------------------------------------------------------------------------
         # Load filtered state dictionary

@@ -225,7 +225,8 @@ class Conv2dMNCL(_ConvNd):
             False, _pair(0), groups, bias, 'zeros')
 
         self.mult_noise_variance = Parameter(torch.ones(1, in_channels, 1, 1) * mnv_init)
-        self.register_buffer("mult_noise_variance_copy", torch.zeros_like(self.mult_noise_variance))
+        
+        self.register_buffer("mult_noise_variance_copy", torch.zeros_like(self.mult_noise_variance)) #is not added to the state_dict by default - we should use argument:persistent=True
         self.register_buffer("weight_copy", torch.zeros_like(self.weight))
         self.register_buffer("prior_precision", torch.ones_like(self.weight) * prior_precision)   
         self.register_buffer("saved_prior_precision", torch.ones_like(self.weight) * prior_precision)  

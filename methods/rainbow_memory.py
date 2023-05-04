@@ -85,7 +85,7 @@ class RM(Finetune):
         # TRAIN
         best_acc = 0.0
         eval_dict = dict()
-        early_stopping = EarlyStopping(patience=10, verbose=True)
+        early_stopping = EarlyStopping(patience=20, verbose=True)
 
         '''ToDo: should we also put the loss function on the device? hmmmm
         '''
@@ -206,19 +206,35 @@ class RM(Finetune):
                 f"training time {train_end:.2f} | inference time {infer_end:.2f} |"
                 f"lr {self.optimizer.param_groups[0]['lr']:.4f}"
             )
+            '''
+            # --------------------------------------------------------------------
+            # Save the best model based on the validation accuracy
+            # --------------------------------------------------------------------
+            validation_losses = [avg_loss_dict[vkey] for vkey in args.validation_keys]
+            for i, (vkey, vminimize) in enumerate(zip(args.validation_keys, args.validation_keys_minimize)):
+                if vminimize:
+                    store_as_best[i] = validation_losses[i] < best_validation_losses[i]
+                else:
+                    store_as_best[i] = validation_losses[i] > best_validation_losses[i]
+                if store_as_best[i]:
+                    best_validation_losses[i] = validation_losses[i]
+            # ----------------------------------------------------------------
+            # Store checkpoint
+            # ----------------------------------------------------------------
+            if checkpoint_saver is not None:
+                checkpoint_saver.save_latest(
+                    directory=args.save,
+                    model_and_loss=model_and_loss,
+                    stats_dict=dict(avg_loss_dict, epoch=epoch),
+                    store_as_best=store_as_best,
+                    store_prefixes=args.validation_keys)
+            '''
             # --------------------------------------------------------------------
             # they report best eval accuracy and not the last one! 
             # --------------------------------------------------------------------
             best_acc = max(best_acc, eval_dict["avg_acc"])
             #best_acc = max(best_acc, eval_dict_valid["avg_acc"])
             # --------------------------------------------------------------------
-            # If bayesian, save the best posterior
-            # --------------------------------------------------------------------
-            '''
-            ToDo: based on jannik's code
-            
-            '''
-
             # --------------------------------------------------------------------
             # Early stopping
             # --------------------------------------------------------------------

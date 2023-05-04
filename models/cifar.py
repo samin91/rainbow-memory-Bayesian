@@ -4,7 +4,6 @@ import torch.nn as nn
 from models.layers import ConvBlock, InitialBlock, FinalBlock
 import pdb
 
-'''
 class BasicBlock(nn.Module):
     expansion = 1
 
@@ -207,6 +206,7 @@ class ResNet(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
+        pdb.set_trace()
         out = self.initial(x)
         out = self.group1(out)
         out = self.group2(out)
@@ -217,7 +217,7 @@ class ResNet(nn.Module):
         out = out.view(x.size(0), -1)
         out = self.fc(out)
         return out
-'''
+
 
 '''
  Original ResNet18 by PyTorch - change the fc layer in the before task function as well
@@ -225,6 +225,7 @@ class ResNet(nn.Module):
 
 This file contains the code for training and testing the ResNet model on the CUB200 dataset.
 ResNet originally proposed in "Deep Residual Learning for Image Recognition" by Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun.(PyTorch implementation)
+'''
 '''
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
@@ -453,3 +454,4 @@ def ResNet(opt):
         model = ResNetBase(opt, BasicBlock, [3, 4, 6, 3]) 
     return model
 
+'''

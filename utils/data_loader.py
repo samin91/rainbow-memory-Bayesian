@@ -202,7 +202,7 @@ def get_statistics(dataset: str):
         "TinyImagenet": 200,
         "imagenet100": 100,
         "imagenet1000": 1000,
-        "cub200": 170,
+        "cub200": 180,
     }
 
     in_channels = {
