@@ -34,7 +34,7 @@ class ImageDataset(Dataset):
         img_name = self.data_frame.iloc[idx]["file_name"]
         label = self.data_frame.iloc[idx].get("label", -1)
 
-        img_path = os.path.join("dataset", self.dataset, img_name)
+        img_path = os.path.join("/visinf/home/shamidi/new-BRM/rainbow-memory-Bayesian","dataset", self.dataset, img_name)
         image = PIL.Image.open(img_path).convert("RGB")
         if self.transform:
             image = self.transform(image)
@@ -62,7 +62,7 @@ def get_train_datalist(args, cur_iter: int) -> List:
             )
             #f"collections/{args.dataset}/{collection_name}.json"
             datalist += pd.read_json( 
-                f"collections/{args.dataset}/{collection_name}.json"    
+                f"/visinf/home/shamidi/new-BRM/rainbow-memory-Bayesian/collections/{args.dataset}/{collection_name}.json"    
             ).to_dict(orient="records")
             logger.info(f"[Train] Get datalist from {collection_name}.json")
     else:
@@ -75,7 +75,7 @@ def get_train_datalist(args, cur_iter: int) -> List:
         )
         # f"collections/{args.dataset}/{collection_name}.json"
         datalist = pd.read_json(
-            f"collections/{args.dataset}/{collection_name}.json"
+            f"/visinf/home/shamidi/new-BRM/rainbow-memory-Bayesian/collections/{args.dataset}/{collection_name}.json"
         ).to_dict(orient="records")
         logger.info(f"[Train] Get datalist from {collection_name}.json")
 
@@ -108,7 +108,7 @@ def get_test_datalist(args, exp_name: str, cur_iter: int) -> List:
             dataset=args.dataset, rnd=args.rnd_seed, n_cls=args.n_cls_a_task, iter=iter_
         )
         datalist += pd.read_json(
-            f"collections/{args.dataset}/{collection_name}.json"
+            f"/visinf/home/shamidi/new-BRM/rainbow-memory-Bayesian/collections/{args.dataset}/{collection_name}.json"
         ).to_dict(orient="records")
         logger.info(f"[Test ] Get datalist from {collection_name}.json")
 
@@ -134,7 +134,7 @@ def get_valid_datalist(args, exp_name: str, cur_iter: int) -> List:
             dataset=args.dataset, rnd=args.rnd_seed, n_cls=args.n_cls_a_task, iter=iter_
         )
         datalist += pd.read_json(
-            f"collections/{args.dataset}/{collection_name}.json"
+            f"/visinf/home/shamidi/new-BRM/rainbow-memory-Bayesian/collections/{args.dataset}/{collection_name}.json"
         ).to_dict(orient="records")
         logger.info(f"[Test ] Get datalist from {collection_name}.json")
 
