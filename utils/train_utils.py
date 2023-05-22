@@ -12,7 +12,7 @@ from torch import optim
 from models import cub200_mnvi, mnist, cifar, imagenet, cub200, cifar_mnvi, imagenet_mnvi
 import pdb
 
-def select_optimizer(opt_name, lr, model, sched_name="cos"):
+def select_optimizer(opt_name, lr, weight_decay, model, sched_name="cos"):
     if opt_name == "adam":
         opt = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-6)
     elif opt_name == "radam":
@@ -20,7 +20,7 @@ def select_optimizer(opt_name, lr, model, sched_name="cos"):
     elif opt_name == "sgd":
         #  momentum=0.9, nesterov=True, weight_decay=1e-4
         opt = optim.SGD(
-            model.parameters(), lr=lr, momentum=0.9, nesterov=True, weight_decay=1e-4
+            model.parameters(), lr=lr, momentum=0.9, nesterov=True, weight_decay=weight_decay
         )
     else:
         raise NotImplementedError("Please select the opt_name [adam, sgd]")
