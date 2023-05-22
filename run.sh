@@ -3,7 +3,7 @@
 # CIL CONFIG
 MODE="rm" # joint, gdumb, icarl, rm, ewc, rwalk, bic   # here I can add the Bayesian method? althoug the Bayesian method is more of a architecture than a method! the loss maybe is! 
 # "default": If you want to use the default memory management method.
-MEM_MANAGE="random" # default, random, random_balanced, reservoir, uncertainty, prototype. ToDo: add: consistent_high, consistent_low
+MEM_MANAGE="uncertainty" # default, random, random_balanced, reservoir, uncertainty, prototype. ToDo: add: consistent_high, consistent_low
 RND_SEED=1
 DATASET="cifar10" # mnist, cifar10, cifar100, imagenet, cub200
 STREAM="offline" # offline, online
@@ -48,6 +48,10 @@ CHECKPOINT_MODE="resume_from_latest" # "resume_from_latest", "resume_from_best"
 
 # Regularization: Early_stopping
 EARLY_STOPPING="" # True, False
+WEIGHT_DECAY=1e-4
+
+# Looking for the best hyperparameters? Ray tune
+RAY_TUNE=""
 
 if [ "$DATASET" == "mnist" ]; then
     TOTAL=50000 N_VAL=250 N_CLASS=10 TOPK=1
@@ -64,7 +68,7 @@ if [ "$DATASET" == "mnist" ]; then
 elif [ "$DATASET" == "cifar10" ]; then
     TOTAL=50000 N_VAL=250 N_CLASS=10 TOPK=1
     MODEL_NAME="resnet18"
-    N_EPOCH=300; BATCHSIZE=256; LR=0.01 OPT_NAME="sgd" SCHED_NAME="cos" #128
+    N_EPOCH=1; BATCHSIZE=256; LR=0.01 OPT_NAME="sgd" SCHED_NAME="none" #128
     if [ "${MODE_LIST[0]}" == "joint" ]; then
         N_INIT_CLS=10 N_CLS_A_TASK=10 N_TASKS=1
     elif [[ "$EXP" == *"blurry"* ]]; then
@@ -88,7 +92,7 @@ elif [ "$DATASET" == "cifar100" ]; then
 elif [ "$DATASET" == "cub200" ]; then
     TOTAL=50000 N_VAL=0 N_CLASS=180 TOPK=1  # what is TOTAL? how many data points do we have in the training set of the original dataset? 
     MODEL_NAME="resnet18"
-    N_EPOCH=500; BATCHSIZE=32; LR=0.01 OPT_NAME="sgd" SCHED_NAME="multistep"  #N_EPOCH=256; BATCHSIZE=16; LR=0.05 OPT_NAME="sgd" SCHED_NAME="cos"
+    N_EPOCH=100; BATCHSIZE=64; LR=0.01 OPT_NAME="sgd" SCHED_NAME="none"  #N_EPOCH=256; BATCHSIZE=16; LR=0.05 OPT_NAME="sgd" SCHED_NAME="cos"
     if [ "${MODE_LIST[0]}" == "joint" ]; then
         N_INIT_CLS=180 N_CLS_A_TASK=180 N_TASKS=1
     elif [[ "$EXP" == *"blurry"* ]]; then
@@ -113,14 +117,15 @@ else
     exit 1
 fi
 
-CUDA_VISIBLE_DEVICES=3 CUDA_LAUNCH_BLOCKING=1 CUBLAS_WORKSPACE_CONFIG=:16:8 python main.py --mode $MODE --mem_manage $MEM_MANAGE --exp_name $EXP \
---dataset $DATASET --stream_env $STREAM  $INIT_MODEL $INIT_OPT --topk $TOPK \
---n_tasks $N_TASKS --n_cls_a_task $N_CLS_A_TASK --n_init_cls $N_INIT_CLS \
---rnd_seed $RND_SEED --model_name $MODEL_NAME --opt_name $OPT_NAME --pretrain $PRETRAIN --sched_name $SCHED_NAME \
---lr $LR --batchsize $BATCHSIZE --n_epoch $N_EPOCH --n_worker $N_WORKER \
---memory_size $MEM_SIZE --transform $TRANS --uncert_metric $UNCERT_METRIC \
---feature_size $FEAT_SIZE $distilling --joint_acc $JOINT_ACC \
---expanding_memory $EXP_MEM --coreset_size $CORSET_SIZE --bayesian_model $BAYESIAN --min_variance $MEAN_VARIANCE \
---mnv_init $MNV_INIT --prior_precision $PRIOR_PRECISION --prior_mean $PRIOR_MEAN --model_kl_div_weight $KL_DIV_WEIGHT \
---prior_conv_function $PRIOR_CONVERSION_FUNCTION --kld_weight_atte $KLD_WEIGHT_ATTE --checkpoint_path $CHECKPOINT --checkpoint_include_params $CHECKPOINT_INCLUDE \
- --checkpoint_exclude_params $CHECKPOINT_EXCLUDE --checkpoint_mode $CHECKPOINT_MODE --informed_prior $INFORMED_PRIOR --early_stopping $EARLY_STOPPING
+    CUDA_VISIBLE_DEVICES=0 CUDA_LAUNCH_BLOCKING=1 CUBLAS_WORKSPACE_CONFIG=:16:8 python main.py --mode $MODE --mem_manage $MEM_MANAGE --exp_name $EXP \
+    --dataset $DATASET --stream_env $STREAM  $INIT_MODEL $INIT_OPT --topk $TOPK \
+    --n_tasks $N_TASKS --n_cls_a_task $N_CLS_A_TASK --n_init_cls $N_INIT_CLS \
+    --rnd_seed $RND_SEED --model_name $MODEL_NAME --opt_name $OPT_NAME --pretrain $PRETRAIN --sched_name $SCHED_NAME \
+    --lr $LR --batchsize $BATCHSIZE --n_epoch $N_EPOCH --n_worker $N_WORKER \
+    --memory_size $MEM_SIZE --transform $TRANS --uncert_metric $UNCERT_METRIC \
+    --feature_size $FEAT_SIZE $distilling --joint_acc $JOINT_ACC \
+    --expanding_memory $EXP_MEM --coreset_size $CORSET_SIZE --bayesian_model $BAYESIAN --min_variance $MEAN_VARIANCE \
+    --mnv_init $MNV_INIT --prior_precision $PRIOR_PRECISION --prior_mean $PRIOR_MEAN --model_kl_div_weight $KL_DIV_WEIGHT \
+    --prior_conv_function $PRIOR_CONVERSION_FUNCTION --kld_weight_atte $KLD_WEIGHT_ATTE --checkpoint_path $CHECKPOINT --checkpoint_include_params $CHECKPOINT_INCLUDE \
+    --checkpoint_exclude_params $CHECKPOINT_EXCLUDE --checkpoint_mode $CHECKPOINT_MODE --informed_prior $INFORMED_PRIOR --early_stopping $EARLY_STOPPING \
+    --ray_tune $RAY_TUNE --weight_decay $WEIGHT_DECAY

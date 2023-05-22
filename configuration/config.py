@@ -169,7 +169,7 @@ def base_parser():
     #Bayesian mode
     parser.add_argument(
         "--bayesian_model",
-        action="store_true",
+        action="store_false",
         help="Use Bayesian model for uncertainty estimation",
     )
 
@@ -261,7 +261,14 @@ def base_parser():
         help="early stopping on the validation set",   
     )
 
-   
+    parser.add_argument(
+        "--ray_tune",
+        action="store_true",
+        help="look for the best hyperparameters using ray tune library",   
+    )
+
+    parser.add_argument("--weight_decay", type=float, default=0.0, help="weight_decay")
+
     # Debug
     parser.add_argument("--debug", action="store_true", help="Turn on Debug mode")
 
