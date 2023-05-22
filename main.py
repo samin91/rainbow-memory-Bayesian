@@ -39,10 +39,6 @@ from utils.method_manager import select_method
 from utils.bayes_utils import configure_prior_conversion_function
 from losses.probabilistic_loss import configure_model_and_loss
 
-from methods.rm_trainable import trainable_RM
-
-
-
 # add the bayesian losses
 from losses import ClassificationLoss, ClassificationLossVI
 import pdb
@@ -284,9 +280,9 @@ def main():
                 logging.info("Best trial final validation loss: {}".format(best_trial.last_result["loss"]))
                 logging.info("Best trial final validation accuracy: {}".format(best_trial.last_result["accuracy"]))
 
-                best_checkpoint = result.get_best_checkpoint(trial=best_trial, metric="accuracy", mode="max")
-                best_checkpoint_dir = best_checkpoint.to_directory(path="directory")
-                model_state, optimizer_state = torch.load(os.path.join(best_checkpoint_dir, "checkpoint"))
+                #best_checkpoint = result.get_best_checkpoint(trial=best_trial, metric="accuracy", mode="max")
+                #best_checkpoint_dir = best_checkpoint.to_directory(path="directory")
+                #model_state, optimizer_state = torch.load(os.path.join(best_checkpoint_dir, "checkpoint"))
 
                 #best_trained_model = model._network
                 #best_trained_model.load_state_dict(model_state)
