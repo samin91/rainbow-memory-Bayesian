@@ -21,13 +21,20 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 
 from utils.augment import Cutout, Invert, Solarize, select_autoaugment
+
+# for ray.tune 
 from utils.data_loader import ImageDataset
 from utils.data_loader import cutmix_data
+
+
 from utils.train_utils import select_model, select_optimizer
 from utils.checkpoint_saver import CheckpointSaver
 from models import varprop
 from models import cub200_mnvi
 import pdb
+
+import ray
+from ray import tune
 
 
 
@@ -56,6 +63,9 @@ class Finetune:
     def __init__(
         self, criterion, device, train_transform, test_transform, n_classes, **kwargs
     ):
+      
+
+
         self.num_learned_class = 0
         self.num_learning_class = kwargs["n_init_cls"]
         self.n_classes = n_classes
@@ -65,6 +75,11 @@ class Finetune:
         self.seen = 0
         self.topk = kwargs["topk"]
 
+        # for Ray tune - testing
+        self.num_epochs = kwargs["n_epoch"]
+        self.batch_size = kwargs["batchsize"]
+        self.n_workers = kwargs["n_worker"]
+
         self.device = device
         self.criterion = criterion
         self.dataset = kwargs["dataset"]
@@ -72,6 +87,8 @@ class Finetune:
         self.opt_name = kwargs["opt_name"]
         self.sched_name = kwargs["sched_name"]
         self.lr = kwargs["lr"]
+        # add weight decay as an argument
+        self.weight_decay = kwargs['weight_decay']
         self.feature_size = kwargs["feature_size"]
 
         self.train_transform = train_transform
@@ -124,8 +141,8 @@ class Finetune:
 
 
         # cuda events for measuring CUDA time? 
-        self.start_event = torch.cuda.Event(enable_timing=True)
-        self.end_event = torch.cuda.Event(enable_timing=True)
+        #self.start_event = torch.cuda.Event(enable_timing=True)
+        #self.end_event = torch.cuda.Event(enable_timing=True)
         #-------------------------------------------
 
     def set_current_dataset(self, train_datalist, test_datalist, valid_datalist):
@@ -136,6 +153,9 @@ class Finetune:
         self.test_list = test_datalist
         # add validation set
         self.valid_list = valid_datalist
+        
+
+
 
     def before_task(self, datalist, cur_iter, init_model=False, init_opt=True, bayesian=False):
         logger.info("Apply before_task")
@@ -163,12 +183,15 @@ class Finetune:
             logger.info("Reset model parameters")
             self.model = select_model(self.model_name, self.dataset, new_out_features, self.kwargs)
         else:
-            
             if bayesian is True:
                 # what happens to the pre-trained weights?
                 #default values of the layer: prior_precision=1e0, prior_mean=0.0, mnv_init=-3.0
                 
-                self.model.fc = varprop.LinearMNCL(in_features, new_out_features, self.kwargs['prior_precision'], self.kwargs['prior_mean'], self.kwargs['mnv_init'])
+                self.model.fc = varprop.LinearMNCL(in_features, new_out_features, 
+                                                   self.kwargs['prior_precision'], 
+                                                   self.kwargs['prior_mean'], 
+                                                   self.kwargs['mnv_init'])
+                # what is this line? 
                 cub200_mnvi.finitialize([self.model.fc], small=False)
                 #self.model.fc = self.model.fc.to(self.device)
                 # does this weight initialization take place automatically? - since the model is defined once before the task training
@@ -213,9 +236,16 @@ class Finetune:
         # gives us the possibility to reinitialize the optimizer and scheduler
         if init_opt:
             logger.info("Reset the optimizer and scheduler states")
+
+            '''
+            if self.kwargs["ray_tune"] is True and cur_iter==0:
+                self.optimizer, self.scheduler = select_optimizer(
+                    self.opt_name, configs['lr'].sample(), configs['weight_decay'].sample(), self.model, self.sched_name)
+            else:
+            '''
+
             self.optimizer, self.scheduler = select_optimizer(
-                self.opt_name, self.lr, self.model, self.sched_name
-            )
+                    self.opt_name, self.lr, self.weight_decay, self.model, self.sched_name)
 
         logger.info(f"Increasing the head of fc {out_features} -> {new_out_features}")
 
@@ -305,6 +335,8 @@ class Finetune:
         else:
             logger.warning(f"Already updated the memory during this iter ({cur_iter})")
 
+            
+
     def get_dataloader(self, batch_size, n_worker, train_list, test_list, valid_list):
         # Loader
         train_loader = None
@@ -349,6 +381,8 @@ class Finetune:
             )
 
         return train_loader, test_loader, valid_loader
+    
+
 
     def train(self, cur_iter, n_epoch, batch_size, n_worker, n_passes=1):
 
@@ -975,21 +1009,23 @@ class Finetune:
         # Does it make sense to use majority votig for a bayesian model?
         sample["uncertainty"] = (1 - vote_counter.max() / cand_length).item() # out of 12 predictions per sample, how many times the most voted class was not predicted
         
-
+    '''
     def measure_time(self, model, input):
-            # Record the start time
-            self.start_event.record()
+        # Record the start time
+        self.start_event.record()
 
-            # Forward pass
-            output = model(input)
+        # Forward pass
+        output = model(input)
 
-            # Record the end time
-            self.end_event.record()
+        # Record the end time
+        self.end_event.record()
 
-            # Wait for the events to complete
-            torch.cuda.synchronize()
+        # Wait for the events to complete
+        torch.cuda.synchronize()
 
-            # Compute the elapsed time
-            elapsed_time = self.start_event.elapsed_time(self.end_event)
+        # Compute the elapsed time
+        elapsed_time = self.start_event.elapsed_time(self.end_event)
 
-            return elapsed_time, output
+        return elapsed_time, output
+    
+    '''
