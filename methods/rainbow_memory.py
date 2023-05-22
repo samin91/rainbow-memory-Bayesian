@@ -6,17 +6,26 @@ GPLv3
 import time
 import logging
 import random
-
+import os
 import numpy as np
 import pandas as pd
 import torch
 torch.use_deterministic_algorithms(True, warn_only=True)
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+
+# Ray Tune
+import ray
+from ray.tune import Trainable 
+from ray import tune
+from utils.train_utils import select_model, select_optimizer
+
 from utils.early_stopping import EarlyStopping
 from methods.finetune import Finetune
+# for ray.tune()
 from utils.data_loader import cutmix_data, ImageDataset
 import pdb
+from tqdm import tqdm
 
 logger = logging.getLogger()
 # log = f"tensorboard/Run_{}" ???
@@ -34,20 +43,174 @@ class RM(Finetune):
     def __init__(
         self, criterion, device, train_transform, test_transform, n_classes, **kwargs
     ):
+        
         super().__init__(
             criterion, device, train_transform, test_transform, n_classes, **kwargs
         )
         
         self.batch_size = kwargs["batchsize"]
         self.n_worker = kwargs["n_worker"]
+        self.n_epochs = kwargs["n_epoch"]
         self.exp_env = kwargs["stream_env"]
         self.bayesian = kwargs["bayesian_model"]
         self.pretrain = kwargs['pretrain']
+        self.scheduler_name = kwargs["sched_name"]
         if kwargs["mem_manage"] == "default":
             self.mem_manage = "uncertainty"
 
+   # --------------------------------------------------------------------------------------------------
+   # For Ray Tune
+   # --------------------------------------------------------------------------------------------------
+    '''
+    def setup(self, config):
+        pdb.set_trace()
+        self.optimizer = select_optimizer(self.opt_name, config['lr'], config['weight_decay'], self.model, self.sched_name)
+    '''
+
+    ''' add the dataloader function here and see if it makes a difference 
+    
+    '''
+
+    # config
+    def find_hyperparametrs(self, config):
+        
+        #batch_size = self.batch_size
+        n_worker = self.n_workers
+        cur_iter = 0
+        batch_size = self.batch_size
+
+
+        self.optimizer, self.scheduler = select_optimizer(self.opt_name, config['lr'], config['weight_decay'], self.model, self.sched_name)
+
+       
+        if len(self.memory_list) > 0:
+            mem_dataset = ImageDataset(
+                pd.DataFrame(self.memory_list),
+                dataset=self.dataset,
+                transform=self.train_transform,
+            )
+            memory_loader = DataLoader(
+                mem_dataset,
+                shuffle=True,
+                batch_size=(batch_size // 2),
+                num_workers=n_worker,
+                pin_memory=True,
+            )
+            stream_batch_size = batch_size - batch_size // 2
+        else:
+            memory_loader = None
+            stream_batch_size = batch_size
+        
+
+        # train_list == streamed_list in RM
+        train_list = self.streamed_list
+        test_list = self.test_list
+        valid_list = self.valid_list
+        random.shuffle(train_list)
+        
+        
+        # Configuring a batch with streamed and memory data equally.
+       
+        train_loader, test_loader, valid_loader=self.get_dataloader(stream_batch_size, n_worker, train_list, test_list, valid_list)
+      
+        logger.info(f"Streamed samples: {len(self.streamed_list)}")
+        logger.info(f"In-memory samples: {len(self.memory_list)}")
+        logger.info(f"Train samples: {len(self.streamed_list)+len(self.memory_list)}")
+        logger.info(f"Test samples: {len(self.test_list)}")
+        logger.info(f"Valid samples: {len(self.valid_list)}")
+        
+        # TRAIN
+        eval_dict = dict()
+        #eval_dict_valid = dict()
+        '''ToDo: should we also put the loss function on the device? 
+        '''
+
+        '''
+        if self.pretrain is True:
+            
+            # automatically know wheich model is supposed to get the weights? 
+            if self.bayesian is False:
+                # Load the pre-trained weights
+                pretrained_dict = torch.hub.load_state_dict_from_url('https://s3.amazonaws.com/pytorch/models/resnet18-5c106cde.pth')
+                #pretrained_dict = torch.load('path/to/pretrained_weights.pth')
+                # Filter out unnecessary keys
+                model_dict = self.model.state_dict()
+                pretrained_dict = {k: v for k, v in pretrained_dict.items() 
+                                   if k in model_dict and k not in ('fc.weight', 'fc.bias')}
+
+                # Load the pre-trained weights into the model
+                model_dict.update(pretrained_dict)
+                self.model.load_state_dict(model_dict)
+        '''
+     
+        self.model = self.model.to(self.device)
+        
+        for epoch in range(self.n_epochs):
+           
+            # initialize for each task
+            # optimizer.param_groups is a python list, which contains a dictionary.
+            if self.scheduler_name == "cos":
+                if epoch <= 0:  # Warm start of 1 epoch
+                    for param_group in self.optimizer.param_groups:
+                        # param_group is the dict inside the list and is the only item in this list.
+                        if self.bayesian is True:
+                            param_group["lr"] = self.lr *0.1  # self.lr * 0.1   this was changed due to inf error
+                        else:
+                            param_group["lr"] = self.lr * 0.1
+                elif epoch == 1:  # Then set to maxlr
+                    for param_group in self.optimizer.param_groups:
+                        param_group["lr"] = self.lr
+                else:  # Aand go!
+                    if self.scheduler is not None:
+                        self.scheduler.step()
+            else:
+                if self.scheduler is not None:
+                    self.scheduler.step()
+
+            # Training
+            
+            train_loss, train_acc = self._train(train_loader=train_loader, memory_loader=memory_loader, optimizer=self.optimizer, criterion=self.criterion)
+            
+
+            # Validation (validating over all the test sets seen so far)
+            eval_dict_valid = self.evaluation(
+                valid_loader, criterion=self.criterion
+            )
+
+            # Communicate with Ray tune
+            with tune.checkpoint_dir(epoch) as checkpoint_dir: # what should be the checkpoint_dir will be?
+                path = os.path.join("/visinf/home/shamidi/Projects/rainbow-memory-Bayesian", "ray_checkpoints", "checkpoint")
+                torch.save((self.model.state_dict(), self.optimizer.state_dict()), path)
+
+            tune.report(
+                loss=eval_dict_valid["avg_loss"], accuracy=eval_dict_valid["avg_acc"]
+                )
+            
+
+            # Testing(testing over all the test sets seen so far)
+            eval_dict = self.evaluation(
+                test_loader, criterion=self.criterion
+            )
+            
+            # Report the results on the current epoch
+            
+            logger.info(
+                f"Task {cur_iter} | Epoch {epoch+1}/{self.n_epochs} | train_loss {train_loss:.4f} | train_acc {train_acc:.4f} | "
+                f"test_loss {eval_dict['avg_loss']:.4f} | test_acc {eval_dict['avg_acc']:.4f} | "
+                f"valid_loss {eval_dict_valid['avg_loss']:.4f} | valid_acc {eval_dict_valid['avg_acc']:.4f} | "
+                f"lr {self.optimizer.param_groups[0]['lr']:.4f}"
+                )
+            
+
+      
+       
+           
+    
+
+    # GENERAL TRAINING
     def train(self, cur_iter, n_epoch, batch_size, n_worker, writer, n_passes=0):
         
+    
         if len(self.memory_list) > 0:
             mem_dataset = ImageDataset(
                 pd.DataFrame(self.memory_list),
@@ -87,10 +250,11 @@ class RM(Finetune):
         eval_dict = dict()
         early_stopping = EarlyStopping(patience=20, verbose=True)
 
-        '''ToDo: should we also put the loss function on the device? hmmmm
+        '''ToDo: should we also put the loss function on the device? 
         '''
        
         if self.pretrain is True:
+            
             # automatically know wheich model is supposed to get the weights? 
             if self.bayesian is False:
                 # Load the pre-trained weights
@@ -141,20 +305,25 @@ class RM(Finetune):
             '''
             # initialize for each task
             # optimizer.param_groups is a python list, which contains a dictionary.
-            if epoch <= 0:  # Warm start of 1 epoch
-                for param_group in self.optimizer.param_groups:
-                    # param_group is the dict inside the list and is the only item in this list.
-                    if self.bayesian is True:
-                        param_group["lr"] = self.lr *0.1  # self.lr * 0.1   this was changed due to inf error
-                    else:
-                        param_group["lr"] = self.lr * 0.1
-            elif epoch == 1:  # Then set to maxlr
-                for param_group in self.optimizer.param_groups:
-                    param_group["lr"] = self.lr
-            else:  # Aand go!
+            if self.scheduler_name == "cos":
+                if epoch <= 0:  # Warm start of 1 epoch
+                    for param_group in self.optimizer.param_groups:
+                        # param_group is the dict inside the list and is the only item in this list.
+                        if self.bayesian is True:
+                            param_group["lr"] = self.lr *0.1  # self.lr * 0.1   this was changed due to inf error
+                        else:
+                            param_group["lr"] = self.lr * 0.1
+                elif epoch == 1:  # Then set to maxlr
+                    for param_group in self.optimizer.param_groups:
+                        param_group["lr"] = self.lr
+                else:  # Aand go!
+                    if self.scheduler is not None:
+                        self.scheduler.step()
+            else:
                 if self.scheduler is not None:
                     self.scheduler.step()
 
+            # Training
             train_start = time.time()
             train_loss, train_acc = self._train(train_loader=train_loader, memory_loader=memory_loader,
                                                 optimizer=self.optimizer, criterion=self.criterion)
@@ -164,7 +333,17 @@ class RM(Finetune):
             eval_dict_valid = self.evaluation(
                 valid_loader, criterion=self.criterion
             )
+        
+            '''
+            # Communicate with Ray tune
+            with tune.checkpoint_dir(epoch) as checkpoint_dir: # what should be the checkpoint_dir will be?
+                path = os.path.join(checkpoint_dir, "ray_checkpoints", "checkpoint")
+                torch.save((self.model.state_dict(), self.optimizer.state_dict()), path)
 
+            tune.report(
+                loss=eval_dict_valid["avg_loss"], accuracy=eval_dict_valid["avg_acc"]
+                )
+            '''
             # Testing (testing over all the test sets seen so far)
             infer_start = time.time()
             eval_dict = self.evaluation(
@@ -188,6 +367,7 @@ class RM(Finetune):
             # Train
             writer.add_scalar('Accuracy/train', train_acc, epoch)
             writer.add_scalar("Loss/train", train_loss, epoch)
+
             # Valid
             
             writer.add_scalar('Accuracy/valid-',eval_dict_valid["avg_acc"], epoch)
@@ -333,7 +513,7 @@ class RM(Finetune):
         else:
             raise NotImplementedError("None of dataloder is valid")
         
-        for i, data in enumerate(data_iterator):
+        for i, data in enumerate(tqdm(data_iterator)):
             if len(data) == 2:
                 stream_data, mem_data = data
                 x = torch.cat([stream_data["image"], mem_data["image"]])
@@ -348,46 +528,7 @@ class RM(Finetune):
             x = x.to(self.device)
             y = y.to(self.device)
 
-            '''
-            all_model, _ = self.measure_time(self.model, x)
-            print('all_model', all_model)
-            '''
-            # measure each operation time of the forward pass for one batch
-            # ---------------------------------------------------
-            '''
-            if i==0:
-                # Conv1
-                conv1_time, output = self.measure_time(self.model.conv1, x)
-                print('conv1_time', conv1_time)
-                # BatchNorm1
-                bn1_time, output = self.measure_time(self.model.bn1, output)
-                print('bn1_time', bn1_time)
-                # ReLU
-                relu_time, output = self.measure_time(self.model.relu, output)
-                print('relu_time', relu_time)
-                # MaxPool
-                maxpool_time, output = self.measure_time(self.model.maxpool, output)
-                print('maxpool_time', maxpool_time)
-                # Layer1
-                layer1_time, output = self.measure_time(self.model.layer1, output)
-                print('layer1_time', layer1_time)
-                # Layer2
-                layer2_time, output = self.measure_time(self.model.layer2 , output)
-                print('layer2_time', layer2_time)
-                # Layer3
-                layer3_time, output = self.measure_time(self.model.layer3, output)
-                print('layer3_time', layer3_time)
-                # Layer4
-                layer4_time, output = self.measure_time(self.model.layer4, output)
-                print('layer4_time', layer4_time)
-                # AvgPool
-                avgpool_time, output = self.measure_time(self.model.avgpool, output )
-                print('avgpool_time ', avgpool_time)
-                output = torch.flatten(output, 1)
-                # Fc
-                fc_time, _ = self.measure_time(self.model.fc, output)
-                print('fc-time ', fc_time)
-            '''
+            
             # ------------------------------------------------------
             # this is equivalent to the step code in the test repo
             l, c, d = self.update_model(x, y, criterion, optimizer)
