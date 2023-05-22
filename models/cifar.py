@@ -206,7 +206,7 @@ class ResNet(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
-        pdb.set_trace()
+        
         out = self.initial(x)
         out = self.group1(out)
         out = self.group2(out)
